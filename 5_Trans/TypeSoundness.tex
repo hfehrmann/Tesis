@@ -1,0 +1,236 @@
+\begin{Theorem}
+Given \Context, $M$, and $A$ with \wfContext{\Context} and \ctyping{M}{A}, then we have
+\ctyping[][\WContextTrans{\Context}]{\WTrans{M}}{\WTypeTrans{A}}
+\end{Theorem}
+
+\begin{Proof}
+By a mutual induction over the typing derivation.
+\begin{ProofCase}{\CicType}
+We need to prove 
+$\ctyping[][\WContextTrans{\Context}]{
+          \app{\TypeVal}{\type}{\TypeErr}}{
+          \type[j]}$. 
+We now that \TypeVal{} has type 
+$\depArrow{A}{\type[i']}{\arrow{\arrow{\ExceptionType}{A}}{\type[i']}}$ and \type{} has type 
+$\Type[j]$ with $i<j$. By a double \CicApp{}, we can conclude the result unifying $j$ with $i'$.
+\end{ProofCase}
+
+\begin{ProofCase}{\CicProp}
+We need to prove 
+$\ctyping[][\WContextTrans{\Context}]{
+          \app{\TypeVal}{\Prop}{(\depArrow{A}{\Prop}{A})}}{
+          \type}$. 
+This is similar to the previous case.
+\end{ProofCase}
+
+\begin{ProofCase}{\CicWeak}
+We need to prove 
+$\ctyping[\typing{a}{\WTypeTrans{A}}][\WContextTrans{\Context}]{
+          \WTrans{M}}{
+          \WTypeTrans{B}}$. 
+By the induction hypothesis we have $\ctyping[][\WContextTrans{\Context}]{
+          \WTrans{M}}{
+          \WTypeTrans{B}}$. It only remains to show
+$\ctyping[][\WContextTrans{\Context}]{\WTypeTrans{A}}{s'}$ for some $s'$. We proceed by 
+a case analysis over $s$
+\begin{SubProofCase}{$s \equiv \Prop{}$}
+We have $\ctyping[][\WContextTrans{\Context}]{\WTrans{A}}{\Prop}$ by the induction hypothesis
+and also $\WTypeTrans{A}\equiv\WTrans{A}$. We get the result by applying \CicWeak{} with 
+$s'\equiv\Prop$.
+\end{SubProofCase}
+
+\begin{SubProofCase}{$s \equiv \Type$}
+We have $\ctyping[][\WContextTrans{\Context}]{\WTrans{A}}{\type[s']}$ by the induction hypothesis
+and also $\WTypeTrans{A}\equiv\app{\El}{\WTrans{A}}$. In order to conclude, we need that 
+$\ctyping[][\WContextTrans{\Context}]{\app{\El}{\WTrans{A}}}{s'}$. Recall that
+\El{} has type \arrow{\type}{\Type}. By \CicApp{} on \app{\El}{\WTrans{A}}, we derive it 
+types to \Type[s']. It is possible to conclude by \CicWeak{} on the previous results unifying
+the universe levels.
+\end{SubProofCase}
+\end{ProofCase}
+
+\begin{ProofCase}{\CicTypeProd}
+We need to prove 
+\begin{center}
+$\ctyping[][\WContextTrans{\Context}]{
+    \app{\TypeVal}{
+        (\depArrow{x}{\WTypeTrans{A}}{\WTypeTrans[\typing{x}{A}]{B}}) 
+        }{
+        (\abs{e}{\ExceptionType}{x}{\WTypeTrans{A}}{\app{\WTransErr[\typing{x}{A}]{B}}{e}})
+        }
+    }{
+    \type[max(i,j)]
+    }$. 
+\end{center}
+If the first argument of \TypeVal{} types to $\type[max(i,j)]$ and the second to 
+$(\depArrow{x}{\WTypeTrans{A}}{\WTypeTrans[\typing{x}{A}]{B}})$, we can conclude the proof
+with a double application of \CicApp{} rule which gives the desired type. We proceed to 
+check the first argument.
+
+\noindent By the induction hypothesis we know that:
+\begin{itemize}
+\item $\ctyping[][\WContextTrans{\Context}]{\WTrans{A}}{\type}$
+\item $\ctyping[\typing{x}{\WTypeTrans{A}}][\WContextTrans{\Context}]{
+                \WTrans[\typing{x}{A}]{B}}{\type[j]}$
+\end{itemize}
+We can derive from these hypothesis the followings:
+\begin{itemize}
+\item $\ctyping[][\WContextTrans{\Context}]{\WTypeTrans{A}}{\Type}$
+\item $\ctyping[\typing{x}{\WTypeTrans{A}}][\WContextTrans{\Context}]{
+                \WTypeTrans[\typing{x}{A}]{B}}{\Type[j]}$
+\end{itemize}
+by expanding the definition of \WTypeTrans{\cdot} and applying \CicApp{} rule
+over \El{} and \WTrans{\cdot} in both cases. By \CicTypeProd{} rule we get
+\begin{center}
+$\ctyping[][\WContextTrans{\Context}]{
+    \depArrow{x}{\WTypeTrans{A}}{\WTypeTrans[\typing{x}{A}]{B}}}{
+    \Type[max(i,j)]}$
+\end{center}
+It remains to show that 
+\begin{center}
+$\ctyping[][\WContextTrans{\Context}]{
+    (\abs{e}{\ExceptionType}{x}{\WTypeTrans{A}}{\app{\WTransErr[\typing{x}{A}]{B}}{e}})
+    }{
+    (\arrow{\ExceptionType}{\depArrow{x}{\WTypeTrans{A}}{\WTypeTrans[\typing{x}{A}]{B}}})
+}$
+\end{center}
+which can be reduced to prove the body of the lambda
+\begin{center}
+$\ctyping[\typing{e}{\ExceptionType},\typing{x}{\WTypeTrans{A}}][\WContextTrans{\Context}]{
+    (\app{\WTransErr[\typing{x}{A}]{B}}{e})
+    }{
+    \WTypeTrans[\typing{x}{A}]{B}
+}$
+\end{center}
+We have $\app{\WTransErr[\typing{x}{A}]{B}}{e} \equiv \app{\Err}{\WTrans[\typing{x}{A}]{B}}{e}$ 
+by definition, and $\typing{\Err}{\depArrow{A}{\type}{\arrow{\ExceptionType}{\app{\El}{A}}}}$.
+Applying \CicApp{} two times we get 
+\begin{center}
+$\ctyping[\typing{e}{\ExceptionType},\typing{x}{\WTypeTrans{A}}][\WContextTrans{\Context}]{
+    (\app{\Err}{\WTrans[\typing{x}{A}]{B}}{e})
+    }{
+    (\app{\El}{\WTrans[\typing{x}{A}]{B}})
+}$
+\end{center}
+and noticing that $\app{\El}{\WTrans[\typing{x}{A}]{B}} \equiv \WTypeTrans[\typing{x}{A}]{B}$
+we are able to conclude.
+
+The first and second argument of \TypeVal{} type to expected type which allow us to conclude.
+\end{ProofCase}
+
+\begin{ProofCase}{\CicPropProd}
+This case is similar to the previous one with the difference that now we have
+$\ctyping[][\WContextTrans{\Context}]{\WTypeTrans{A}}{\Prop}$ instead of
+$\ctyping[][\WContextTrans{\Context}]{\WTypeTrans{A}}{\Type}$. This holds
+because $\WTypeTrans{A} \equiv \WTrans{A}$ 
+and $\ctyping[][\WContextTrans{\Context}]{\WTrans{A}}{\Prop}$ holds by the induction
+hypothesis. \\
+The rest of the proof remains almost unchanged.
+\end{ProofCase}
+
+\begin{ProofCase}{\CicImpred}
+In this case we need to prove
+\begin{center}
+$\ctyping[][\WContextTrans{\Context}]{
+    (\depArrow{x}{\WTypeTrans{A}}{\WTypeTrans[\typing{x}{A}]{B}})
+    }{
+    \Prop
+    }$. 
+\end{center}
+because $\ctyping{(\depArrow{x}{A}{B})}{\Prop}$. By the induction hypothesis we have
+\begin{itemize}
+\item $\ctyping[][\WContextTrans{\Context}]{\WTrans{A}}{\WTypeTrans{s}}$
+\item $\ctyping[\typing{x}{\WTypeTrans{A}}][\WContextTrans{\Context}]{
+                \WTrans[\typing{x}{A}]{B}}{\Prop}$
+\end{itemize}
+It is possible to derive $\ctyping[][\WContextTrans{\Context}]{\WTypeTrans{A}}{s}$ by 
+\lemmaRef{lemma:wtrans_sort_involutive}.
+With the previous hypothesis, the desired result is obtained by a direct application of 
+\CicImpred{} rule.
+\end{ProofCase}
+
+\begin{ProofCase}{\CicAbs}
+We need to prove
+\begin{center}
+$\ctyping[][\WContextTrans{\Context}]{
+    (\abs{x}{\WTypeTrans{A}}{\WTrans[\typing{x}{A}]{M}})
+    }{
+    (\depArrow{x}{\WTypeTrans{A}}{\WTypeTrans[\typing{x}{A}]{B}})
+    }$. 
+\end{center}
+The induction hypothesis gives us
+\begin{itemize}
+\item $\ctyping[\typing{x}{\WTypeTrans{A}}][\WContextTrans{\Context}]{
+        \WTrans{M}}{\WTypeTrans{B}}$
+\item $\ctyping[][\WContextTrans{\Context}]{
+        \WTrans{\depArrow{x}{A}{B}}}{\WTypeTrans{s}}$
+\end{itemize}
+We can derive 
+$\ctyping[][\WContextTrans{\Context}]{\WTypeTrans{\depArrow{x}{A}{B}}}{s}$ by  
+\lemmaRef{lemma:wtrans_sort_involutive}. Noticing that
+\begin{center}
+$
+\ctyping[][\WContextTrans{\Context}]{\WTypeTrans{\depArrow{x}{A}{B}}}{s}
+\equiv
+\ctyping[][\WContextTrans{\Context}]{\depArrow{x}{\WTypeTrans{A}}{\WTypeTrans{B}}}{s}
+$
+\end{center}
+the previous hypotheses allow us to obtain the result by an application of \CicAbs{} rule.
+\end{ProofCase}
+
+\begin{ProofCase}{\CicApp}
+Here we need to prove
+\begin{center}
+$\ctyping[][\WContextTrans{\Context}]{\WTrans{\app{M}{N}}}{\WTypeTrans{\subst{M}{x}{N}}}$
+\end{center}
+By an unfolding the translation and \lemmaRef{lemma:wtrans_substitution}
+\begin{center}
+$\ctyping[][\WContextTrans{\Context}]{
+    \app{\WTrans{M}}{\WTrans{N}}}{\subst{\WTypeTrans{B}}{x}{\WTrans{N}}}$
+\end{center}
+Also, we have as induction hypothesis
+\begin{itemize}
+\item \ctyping[][\WContextTrans{\Context}]{\WTrans{M}}{\depArrow{x}{\WTypeTrans{A}}{\WTypeTrans{B}}}
+\item \ctyping[][\WContextTrans{\Context}]{\WTrans{N}}{\WTypeTrans{A}}
+\end{itemize}
+Which allows to conclude by the \CicApp{} rule.
+\end{ProofCase}
+
+\begin{ProofCase}{\CicConv}
+The induction gives us
+\begin{itemize}
+\item \ctyping[][\WContextTrans{\Context}]{\WTrans{M}}{\WTypeTrans{B}}
+\item \ctyping[][\WContextTrans{\Context}]{\WTrans{A}}{\WTypeTrans{s}}
+\item \convertible[\WContextTrans{\Context}]{\WTrans{A}}{\WTrans{B}}
+\end{itemize}
+We know that \ctyping[][\WContextTrans{\Context}]{\WTypeTrans{A}}{s} by 
+\lemmaRef{lemma:wtrans_sort_involutive}.
+We need to check if \convertible{\WTypeTrans{A}}{\WTypeTrans{B}}.
+There are four cases:
+\begin{itemize}
+\item \convertible[\WContextTrans{\Context}]{\app{\El}{\WTrans{A}}}{\app{\El}{\WTrans{B}}}.
+\item \convertible[\WContextTrans{\Context}]{\WTrans{A}}{\WTrans{B}}.
+\item \convertible[\WContextTrans{\Context}]{\WTrans{A}}{\app{\El}{\WTrans{B}}}.
+\item \convertible[\WContextTrans{\Context}]{\app{\El}{\WTrans{A}}}{\WTrans{B}}.
+\end{itemize}
+The first and second cases are allowed because of the hypothesis and conversion. The third and fourth are 
+impossibles because if the terms have those forms, it is because one belongs to \Prop{} and the other 
+to \Type{}, and those sorts are not convertible in the source and target theories.
+Now is possible to apply \CicConv{} which gives the result.
+\end{ProofCase}
+
+\begin{ProofCase}{\CicIdem}
+We need to prove
+\begin{itemize}
+\item $\ctyping[\typing{x}{\WTypeTrans{A}}][\wfContext{\Context}]{x}{\WTypeTrans{A}}$
+\end{itemize}
+given
+\begin{itemize}
+\item $\ctyping[][\wfContext{\Context}]{\WTrans{A}}{\WTypeTrans{s}}$
+\end{itemize}
+By \lemmaRef{lemma:wtrans_sort_involutive} we have 
+$\ctyping[][\WContextTrans{\Context}]{\WTypeTrans{A}}{s}$ which allows us to conclude
+by \CicIdem{} rule
+\end{ProofCase}
+
+\end{Proof}

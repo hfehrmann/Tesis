@@ -1,0 +1,53 @@
+\begin{Lemma}[Conversion]
+\label{lemma:wtrans_conversion}
+Given a context \Context{} and terms $M$ and $N$, if \convertible{M}{N} then 
+\convertible{\WTrans{M}}{\WTrans{N}}
+\end{Lemma}
+
+\begin{Proof}
+By induction over the conversion.
+\begin{ProofCase}{\betaRed{}}
+Here we have
+\begin{itemize}
+\item $M \termDef \app{(\abs{x}{A}{M_1})}{N_1}$
+\item $N \termDef \subst{M_1}{x}{N_1}$
+\end{itemize}
+Unfolding the translation and applying \lemmaRef{lemma:wtrans_substitution}:
+\begin{itemize}
+\item $\app{(\abs{x}{\WTypeTrans{A}}{
+                    \WTrans[\typing{x}{A}]{M_1}})}{\WTrans{N_1}}$
+\item $\subst{\WTrans[\typing{x}{A}]{M_1}}{x}{\WTrans{N}}$
+\end{itemize}
+With these terms is possible to establish conversion between the two.
+\end{ProofCase}
+
+\begin{ProofCase}{\etaExp{}}
+Here we have
+\begin{itemize}
+\item $M \termDef M_1$
+\item $N \termDef \abs{x}{A}{(\app{M_1}{x})}$
+\end{itemize}
+Unfolding the translation:
+\begin{itemize}
+\item $\WTrans{M_1}$
+\item $\abs{x}{\WTypeTrans{A}}{(\app{\WTrans{M_1}}{x})}$
+\end{itemize}
+Same as before, it is possible to establish the conversion between the two terms.
+\end{ProofCase}
+
+\begin{ProofCase}{App}
+Without loss of generality, we can set that the conversion is established for 
+left term of the application. The other case is similar. We have
+\begin{itemize}
+\item $M \termDef \app{M_1}{N'}$
+\item $N \termDef \app{M_2}{N'}$
+\end{itemize}
+with \convertible{M_1}{M_2}. Unfolding the translation we get:
+\begin{itemize}
+\item $\app{\WTrans{M_1}}{\WTrans{N'}}$
+\item $\app{\WTrans{M_2}}{\WTrans{N'}}$
+\end{itemize}
+Applying the induction hypothesis allows the conclusion.
+\end{ProofCase}
+
+\end{Proof}

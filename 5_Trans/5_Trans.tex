@@ -1,0 +1,1495 @@
+\chapter{New Parametric Exceptional Translation}
+\label{ch:translation}
+
+%\setcounter{page}{1}
+%\setcounter{figure}{0}
+%\setcounter{globDefs}{0}
+
+\newcommand{\FreeVar}[1]{\mathtexttt{FreeVar}(#1)}
+
+\newcommand{\ExceptionType}{\ensuremath{\mathbb{E}}}
+\newcommand{\BExceptionType}{\text{\rmfamily \textbf{E}}}
+
+\newcommand{\raiseFun}{\mathtexttt{raise}}
+\newcommand{\unit}{\mathtexttt{unit}}
+\newcommand{\ttUnit}{\mathtexttt{tt}}
+\newcommand{\eqRefl}{\mathtexttt{refl}}
+
+
+\renewcommand{\CicType}{\textsc{Type}}
+\renewcommand{\CicProp}{\textsc{Prop}}
+\newcommand{\CicWeak}{\textsc{Weakening}}
+\newcommand{\CicTypeProd}{\textsc{Type-Prod}}
+\newcommand{\CicPropProd}{\textsc{Prop-Prod}}
+\newcommand{\CicImpred}{\textsc{Impred}}
+\renewcommand{\CicConv}{\textsc{Conv}}
+\newcommand{\CicAbs}{\textsc{Abs}}
+\renewcommand{\CicApp}{\textsc{App}}
+\newcommand{\CicIdem}{\textsc{Idem}}
+\newcommand{\CicWfnil}{\textsc{Wf-Empty}}
+\newcommand{\CicWfcons}{\textsc{Wf-Cons}}
+
+In \todo{put ref} is presented a syntactic translation for \CIC{} that adds exception to the 
+language. This translation breaks the logic consistency of the calculus. In \todo{put ref},
+the logic consistency is recovered with parametricity techniques if the exceptions do not
+flow at the top level.
+
+The calculus used for the translation is not the same presented here but a variation. The 
+variations only take part on the functional fragment of the calculus (calculus without the inductives).
+We present it in \figRef{fig:CCw*}
+
+\begin{figure}
+    \begin{mathpar}
+    A,B,N,M,R,S\ \termDef\ \Type\ |\ \Prop\ |\ x\ |\ \app{M}{N}\ |\ \abs{x}{A}{M}\ |\ \vardepArrow{A}{B} \\
+    \Context,\varContext\ \termDef\ \EContext\ |\ \Context,\typing{x}{A} \\
+    
+    \inferrule*[lab=\CicType]{\wfContext{\Context} \and i<j}{\ctyping{\Type}{\Type[j]}}
+    \and
+    \inferrule*[lab=\CicProp]{\wfContext{\Context}}{\ctyping{\Prop}{\Type}}
+    \and  
+    \inferrule*[lab=\CicWeak]{\ctyping{M}{B} \and \and \ctyping{A}{s}}{\ctyping[\typing{a}{A}]{M}{B}}
+    
+    \\ 
+    
+    \inferrule*[lab=\CicTypeProd]{\ctyping{A}{\Type} \and \ctyping[\typing{x}{A}]{B}{\Type[j]}}{%
+               \ctyping{\vardepArrow{A}{B}}{\Type[\text{max(i,j)}]}}
+    \and
+    \inferrule*[lab=\CicPropProd]{\ctyping{A}{\Prop} \and \ctyping[\typing{x}{A}]{B}{\Type}}{%
+               \ctyping{\vardepArrow{A}{B}}{\Type}}
+    
+    \\
+    
+    \inferrule*[lab=\CicImpred]{\ctyping{A}{s} \and \ctyping[\typing{x}{A}]{B}{\Prop}}{%
+               \ctyping{\vardepArrow{A}{B}}{\Prop}}
+               
+    \inferrule*[lab=\CicConv]{\ctyping{M}{B} \and \ctyping{A}{s} \and \convertible{A}{B}}{\ctyping{M}{A}}
+    
+    \\
+    
+    \inferrule*[lab=\CicAbs]{\ctyping[\typing{x}{A}]{M}{B} \and \ctyping{\vardepArrow{A}{B}}{s}}{%
+               \ctyping{\abs{x}{A}{M}}{\vardepArrow{A}{B}}}
+    \and
+    \inferrule*[lab=\CicApp]{\ctyping{M}{\vardepArrow{A}{B} \and \ctyping{N}{A}}}{\ctyping{\app{M}{N}}{\subst{B}{x}{N}}}
+    
+    \\
+    
+    \inferrule*[lab=\CicWfnil]{ }{\wfContext{\EContext}} 
+    \and 
+    \inferrule*[lab=\CicWfcons]{\ctyping{A}{s}}{\wfContext{\Context,\typing{x}{A}}}
+    \and
+    \inferrule*[lab=\CicIdem]{\ctyping{A}{s}}{\ctyping[\typing{x}{A}]{x}{A}}
+    
+    \\
+    
+    \inferrule{ }{\convertible{\app{(\abs{x}{A}{M})}{N}}{\subst{M}{x}{N}}}
+    \and
+    \inferrule{ }{\convertible{M}{\abs{x}{A}{(\app{M}{x})}}}
+    \\
+    \inferrule{\convertible{M_1}{M_2}}{\convertible{\app{M_1}{N}}{\app{M_2}{N}}}
+    \and
+    \inferrule{\convertible{N_1}{N_2}}{\convertible{\app{M}{N_1}}{\app{M}{N_2}}}
+    
+    \end{mathpar}
+    \caption{\CCw + \Prop}
+    \label{fig:CCw*}
+\end{figure}
+
+% The exceptional translation is a syntactical translation of \CIC{} that adds exceptions to the language. 
+% The formalization is done in two stages. First, over a \CCw{}, which is similar to \CC{} with a cumulative 
+% universe instead of the impredicative, and 
+% then over the same language adding inductives. The underlying calculus \CCw{} is presented in \figRef{fig:CCw*}, 
+% with the impredicative sort added. Here we have a set $\Sort\termEq \{\Prop\}\cup\{\Type{} |\ i\in\Nat\}$ and 
+% $s\in\Sort$ for every $s$ in the definition.
+
+From now on we define \Theory{} a theory that interprets \CIC{}, \ETheory{} the exceptional translation of 
+\Theory{} and \PTheory{} the parametric exceptional translation of \Theory{}.
+
+In \ETheory{} it is possible to define a new type \BExceptionType{} which exposes the underlying 
+exceptional type \ExceptionType{} of the translation.
+\begin{center} 
+$\Trans{\BExceptionType}\termDef \app{\TypeVal}{\ExceptionType}{(\abs{e}{\ExceptionType}{e})}$ 
+\end{center}
+With this type, it is possible to define in \ETheory{} a function that inhabits any type providing a term
+belonging to the 
+exception $\typing{\raiseFun{}}{\depArrow{A}{\Type[]{}}{\arrow{\BExceptionType}{A}}}$ by:
+\begin{center}
+$\Trans{\raiseFun}\termDef \abs{A}{\TypeTrans{\Type[]{}}}{e}{\ExceptionType}{\app{\Err}{A}{e}}$ 
+\end{center}
+However, these previously defined terms do not belong to \PTheory, because both terms do not admit a 
+parametric translation over \ParamTrans{\cdot}. Intuitively, \ParamTrans{\cdot} recursively verifies that 
+a term is composed only by pure terms. Thus, it is not possible to establish parametric proofs that use 
+impure programs, ie, these terms belong only to \ETheory{} but not to \PTheory. In the following 
+example $\ExceptionType\termDef\unit$:
+\begin{center}
+$\exists (n:\mathtexttt{nat}),\ (\app{\raiseFun}{\ttUnit}) = n $
+\end{center}
+Given the definition of equality, existencial and natural in \figRef{fig:EqAndExDefs}, the proposition admits two
+proofs in \ETheory{}:
+\begin{center}
+$(\app{\mathtexttt{intro}}{\mathtexttt{nat}}{(\abs{n}{\mathtexttt{nat}}{(\app{\raiseFun}{\ttUnit}) = n})}{
+      (\app{\raiseFun}{\ttUnit})}{\eqRefl})$
+\hspace{2em} 
+$(\app{\raiseFun}{\ttUnit})$
+\end{center}
+It is desirable that the parametric translation allows the former, but prohibits the latter because 
+the first establishes a property for the exceptional term while the second is an impure proof. Currently,
+both terms are rejected because $(\app{\raiseFun}{\ttUnit})$ is used. 
+
+\begin{figure}
+\begin{CoqDef}%{\par\bfseries\ttfamily\noindent%
+\IndIntro[2][\typing{\Indeq}{\depArrow{A}{\Type}{x}{A}{\arrow{A}{\Prop}}}][
+             \typing{\Consrefl}{\depArrow{A}{\Type}{x}{A}{\app{\Indeq}{A}{x}{x}}}]
+
+\noindent
+\IndIntro[2][\typing{\Index}{\depArrow{A}{\Type}{P}{\arrow{A}{\Prop}}{\Prop}}][
+             \typing{\Consintro}{\depArrow{A}{\Type}{P}{\arrow{A}{\Prop}}{
+                                           \depArrow{x}{A}{p}{\app{P}{x}}{\app{\Index}{A}{P}}}}]
+\end{CoqDef}%}%
+    \caption{Inductive definitions}
+    \label{fig:EqAndExDefs}
+\end{figure}
+
+Here we present a new syntactical 
+translation over \CIC{} which is a variant of the exceptional one,
+the \emph{weakly parametric exceptional translation} \WParamTrans{\cdot},
+that relaxes the translation
+over propositions and allows reasoning over impure programs, but prohibits impure proofs, \ie{}, 
+accept the first proof and reject the second. 
+
+\section{Translation for the Functional Fragment}
+
+The exceptional translation transforms the sort hierarchy to a type hierarchy with a default exceptional
+constructor:
+\begin{itemize}
+    \item $\Trans{\Type} \equiv \app{\TypeVal}{ \type}{\TypeErr} $
+    \item $\Trans{\Prop} \equiv \app{\TypeVal}{ \prop}{\PropErr} $
+\end{itemize}
+\newcommand{\wSymbol}{\ensuremath{\omega}}
+\NewDocumentCommand{\WTrans}{D<>{\Context}om}{%
+    \ensuremath{[#3]^{#1\IfValueT{#2}{,#2}}_{\wSymbol}}%
+}
+\NewDocumentCommand{\WTypeTrans}{D<>{\Context}om}{%
+    \ensuremath{[\![#3]\!]^{#1\IfValueT{#2}{,#2}}_{\wSymbol}}%
+}
+\NewDocumentCommand{\WTransErr}{D<>{\Context}om}{%
+    \ensuremath{[#3]^{#1\IfValueT{#2}{,#2}}_{\wSymbol\,\phi}}%
+}
+\NewDocumentCommand{\WContextTrans}{m}{\WTypeTrans<>{#1}}
+\renewcommand{\WTermTrans}[1]{\ensuremath{#1_{\wSymbol}}}
+
+Both sorts can be inhabited by an exception in \ETheory{} providing an inhabitant
+of \ExceptionType{}. We want to enforce the purity of the propositions, so the new translation
+\WTrans{\cdot}
+treats the propositional sort a little different 
+\begin{center}
+$\WTrans<>{\Prop} \equiv \app{\TypeVal}{\Prop}{(\varabs{_}{\ExceptionType}{\depArrow{A}{\Prop}{A}})} $
+\end{center}
+The default exceptional constructor for this case is chosen degenerated because in essence is never used in a 
+meaningful way. Note that this new translation is not homogeneous, in the sense that 
+the translation for the sorts differ in a fundamental way. As a consequence, it is necessary to tag
+every term with the sort they belong to. This can be achieved by keeping an environment along the
+translation. With this change, the new translation is defined in 
+\figRef{fig:weaklyParExcTransDef}.
+
+\begin{figure}
+    \centering
+    \begin{minipage}{\textwidth}
+    \renewcommand{\arraystretch}{1.15}
+    \begin{tabular}{l@{$\hspace{0.1em}\termDef$\ \ }l}
+    \WTrans{\Type} & $\app{\TypeVal}{\type}{\TypeErr}$ \\
+    \WTrans{\Prop} & $\app{\TypeVal}{
+                           \Prop}{
+                           (\abs{\noBinder}{\ExceptionType}{ (\depArrow{A}{\Prop}{A}) })}$ \\
+    \WTrans{x} & $x$ \\
+     
+    \WTrans{\abs{x}{A}{M}} & $\abs{x}{\WTypeTrans{A}}{\WTrans[\typing{x}{A}]{M}}$ \\
+    \WTrans{\app{\M{}}{\N{}}} & $\app{\WTrans{M}}{\WTrans{N}}$ \\
+    \WTrans{\depArrow{x}{A}{B}} & $\! \! \left \{ \begin{matrix*}[l]
+                                      \depArrow{x}{\WTypeTrans{A}}{\WTypeTrans[\typing{x}{A}]{B}}
+                                       &
+                                            \ctyping{\depArrow{x}{A}{B}}{\Prop} \\
+                                      \app{\TypeVal}{
+                                        (\depArrow{x}{\WTypeTrans{A}}{\WTypeTrans[\typing{x}{A}]{B}})
+                                      }{
+                                        (\abs{e}{\ExceptionType}{x}{\WTypeTrans{A}}{
+                                              \app{\WTransErr[\typing{x}{A}]{B}}{e}})
+                                      }
+                                        & \otherwise
+                                      \end{matrix*} \right.$ \\
+    \WTransErr{A} & \app{\Err}{\WTrans{A}} \\
+    \WTypeTrans{A} & $\! \! \left \{ \begin{matrix*}[l]
+                                     \WTrans{A} & \ctyping{A}{\Prop} \\
+                                      \app{\El}{\WTrans{A}} & \otherwise
+                                      \end{matrix*} \right.$ \\
+    \hline
+    \rule{0pt}{15pt} \WContextTrans{\EContext} & \EContext \\
+    \WContextTrans{\Context, \typing{x}{A}} &     
+                $\WContextTrans{\Context},\typing{x}{\WTypeTrans<\Context>{A}}$
+    \end{tabular}
+    \end{minipage}
+    \caption{Weakly Parametric Exceptional Translation}
+    \label{fig:weaklyParExcTransDef}
+\end{figure}
+
+The translation is composed by four parts: \WTrans{\cdot} is used at the \emph{term} level, 
+\WTypeTrans{\cdot} at the type level, \WContextTrans{\cdot} for contexts and \WTransErr{\cdot} for 
+generating the exceptional default constructor. In figure \figRef{fig:translation_difference}
+we can see the difference between both translations.
+Note that reductions are applied in figure in order to be more concise.
+Here we can see that if we restrict the calculus with only the \Type[]{} sort, then both translations
+are equivalent. The translation remains almost unchanged with the new translation of \Prop{}. The interesting 
+case is when the term being translated types to \Prop{}, which correspond to the last example in both examples.
+The term and type translation are equal is this case (this are the branches in 
+\figRef{fig:weaklyParExcTransDef}). Essentially, here is were the translation enforces the fact that 
+propositions must remains pure in the exceptional layer. If a term types to \Prop{}, 
+then in the translation 
+it will also translate to \Prop{}, where no special machinery is defined to be able to raise an exception. 
+Note that the \raiseFun{} term uses the second argument of \TypeVal{} to inhabit any type but for \Prop{}
+such function does not exist.
+
+\begin{figure}
+\def\arraystretch{1.5}
+\centering
+\subfloat[][Translation for \Trans{\cdot}/\TypeTrans{\cdot}]{
+\begin{tabular}{lll}
+    \cline{2-3}
+    & \Trans{\cdot} & \TypeTrans{\cdot} \\
+    \hline
+    % --------------------------
+    \Type
+    & 
+    \app{\TypeVal}{\type}{\TypeErr}
+    &
+    \type \\
+    % --------------------------
+    \Prop
+    & 
+    \app{\TypeVal}{\prop}{\PropErr}
+    &
+    \prop \\
+    % --------------------------
+    \arrow{\Type}{\Type[j]}
+    & 
+    \app{\TypeVal}{
+        (\arrow{\type}{\type[j]})}{
+        (\abs{e}{\ExceptionType}{t}{\type}{\TypeErr})} 
+    &
+    \arrow{\type}{\type[j]} \\
+    % --------------------------
+    \arrow{\Type}{\Prop}
+    & 
+    \app{\TypeVal}{
+        (\arrow{\type}{\prop})}{
+        (\abs{e}{\ExceptionType}{t}{\type}{\PropErr})}
+    &
+    \arrow{\type}{\prop} \\
+    % --------------------------
+    \depArrow{A}{\Prop}{A}
+    & 
+    \app{\TypeVal}{
+        (\depArrow{A}{\prop}{A})}{
+        (\abs{e}{\ExceptionType}{A}{\prop}{\PropErr})} 
+    &
+    \depArrow{A}{\prop}{A} \\
+    \hline
+\end{tabular}
+}
+
+\subfloat[][Translation for \WTrans{\cdot}/\WTypeTrans{\cdot}]{
+\begin{tabular}{lll}
+    \cline{2-3}
+    & \WTrans{\cdot} & \WTypeTrans{\cdot} \\
+    \hline
+    % --------------------------
+    \Type
+    & 
+    \app{\TypeVal}{\type}{\TypeErr}
+    &
+    \type \\
+    % --------------------------
+    \Prop
+    & 
+    \app{\TypeVal}{\Prop}{(\depArrow{A}{\Prop}{A})}
+    &
+    \Prop \\
+    % --------------------------
+    \arrow{\Type}{\Type[j]}
+    & 
+    \app{\TypeVal}{
+        (\arrow{\type}{\type[j]})}{
+        (\abs{e}{\ExceptionType}{t}{\type}{\TypeErr})} 
+    &
+    \arrow{\type}{\type[j]} \\
+    % --------------------------
+    \arrow{\Type}{\Prop}
+    &
+    \app{\TypeVal}{
+        (\arrow{\type}{\Prop})}{
+        (\abs{e}{\ExceptionType}{t}{\type}{\depArrow{A}{\Prop}{A}})} 
+    & 
+    \arrow{\type}{\Prop} \\
+    % --------------------------
+    \depArrow{A}{\Prop}{A} 
+    & 
+    \depArrow{A}{\Prop}{A}
+    &
+    \depArrow{A}{\Prop}{A} \\
+    \hline
+\end{tabular}
+}
+    \caption{Difference between the translations}
+    \label{fig:translation_difference}
+\end{figure}
+
+\begin{Lemma}
+\label{lemma:wtrans_sort_involutive}
+Given a context \Context{}, a term $M$ and a sort $s$ such that 
+\ctyping[][\WContextTrans{\Context}]{\WTrans{M}}{\WTypeTrans{s}}, then 
+\ctyping[][\WContextTrans{\Context}]{\WTypeTrans{M}}{s}.
+\end{Lemma}
+
+\begin{Proof}
+By a case analysis over $s$.
+\begin{ProofCase}{$s \termDef \Type$}
+After reduction, we have to prove $\ctyping[][\WContextTrans{\Context}]{\app{\El}{\WTrans{M}}}{s}$
+given $\ctyping[][\WContextTrans{\Context}]{\WTrans{M}}{\type}$. Because \El{} has type
+$\arrow{\type}{\Type}$, the result is obtained by an application of the \CicApp{} rule.
+\end{ProofCase}
+
+\begin{ProofCase}{$s \termDef Prop$}
+After reduction, we have to prove $\ctyping[][\WContextTrans{\Context}]{\WTrans{M}}{\Prop}$
+given $\ctyping[][\WContextTrans{\Context}]{\WTrans{M}}{\Prop}$, which is trivial.
+\end{ProofCase}
+\end{Proof}
+
+\input{5_Trans/Substitution}
+
+\input{5_Trans/Conversion}
+
+The typing soundness theorem is, taking in consideration the previous discussion:
+\input{5_Trans/TypeSoundness}
+
+
+
+\noindent------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+This change on the propositional sort forces the purity on proofs because:
+\begin{center}
+    $\TypeTrans{\Prop}
+    \equiv
+    \app{\El}{\Trans{\Prop}}
+    \equiv
+    \app{\El}{ (\app{\TypeVal}{\Prop}{(\abs{\,\noBinder}{\ExceptionType}{
+                                            (\depArrow{A}{\Prop}{A}) })}) }
+    \equiv
+    \Prop$
+\end{center}
+
+
+
+The first step to achieving this goal is to be able to identify when we are constructing
+a proposition or a proof, from other terms. This means that we would like a function that
+receives terms of the calculus, specifically types, and returns true if the arguments is 
+either a proposition or an arity of \Prop{} (the argument constructs a proposition),
+and false otherwise. For example:
+\begin{enumerate}
+\item $\depArrow{A}{\Type}{x}{A}{\app{\Indeq}{A}{x}{x}}$
+\item $\depArrow{n}{\Indnat}{P}{\arrow{nat}{\Type}}{\arrow{\app{P}{n}}{\Prop}}$
+\item $\app{(\abs{A}{\Type}{A})}{\Prop}$
+\item $\depArrow{A}{\Type}{x}{A}{\arrow{\app{\Indeq}{A}{x}{x}}{nat}}$
+\item $\Type$
+\end{enumerate}
+In the previous examples, the function that must be defined should output true for cases one, two and three,
+where case one correspond to a proposition, and cases two and three are arities (after reduction in the third
+case), and false for case four and five
+
+The previous is captured by the function \propFun{} defined in \figRef{fig:ArToPropDef}.
+This function 
+detects if a type is an arity
+of \Prop{}, a type constructor belonging to \Prop{}, or a proposition. It would be said that
+a term is related to \Prop{} if the result of \propFun{} is true and related to \Type{} if the 
+result is false. Note that \propFun{} behaves in the expected way in the previous cases.
+\begin{figure}
+    \begin{tabular}{l@{ }l}
+    \propFun[M] = & $\! \left \{ \begin{matrix*}[l]
+                    \trueTerm & if M:\Prop\\
+                    \trueTerm & \text{if }M\text{ is an arity of }\Prop\\
+                    \falseTerm & \text{otherwise}
+                    \end{matrix*} \right .$
+    \end{tabular}
+    \caption{Definition of $\propFun$ function}
+    \label{fig:ArToPropDef}
+\end{figure}
+
+Now we are able to define the translation (see \figRef{fig:weaklyParExcTransDef}).
+As stated before, this translation is a variation of the exceptional one. It behaves in the same way 
+as in the case of the type hierarchy but not in the proposition hierarchy. Essentially, the 
+translation detects when the te
+
+
+
+
+
+
+
+The idea is to use \propFun{} on the types to guide how the translation should behave. If for a 
+given type the result of \propFun{} is true, then we should relax the parametric argument living in \Type{}.
+In fact, we should relax the terms whose result of \propFun{} is false (the second case 
+in \todo{move to figure} lives in \Type{} but we would like to be parametric over it). 
+For this we use \propFun{} in the abstractions, dependent products and applications, which produces branches in
+the definition on those points. Those branches allow the translated term 
+to be non-parametric on the argument, which enables to 
+reason about the impure terms. Because the condition is repeated along the three cases, we define 
+\begin{center}
+$\weaklypropFun[A,B]\termDef\neg\ \propFun[A] \wedge \propFun[B]$
+\end{center}
+The use of this function is similar in all the cases. In the abstraction case, for example, 
+$\weaklypropFun[A,B]$
+is true when $A$ is related to \Type{} but $B$ is in \Prop{}.\\
+Is important to note that context translation is parametrized with a boolean instead of a context.
+This is due to the fact that the context is used to check a term. The boolean reflects whether the 
+translation should be parametric over the terms related to \Type.
+In practice, this boolean is equal to the result of apply the \propFun{} over the term on which 
+the context is needed.
+
+As usual, to establish the 
+soundness of the translation, we need a few fundamental lemmas. It is important to recall that 
+the exceptional and parametric exceptional translation are sound.
+
+\begin{figure}
+    \centering
+    \begin{minipage}{\textwidth}
+    \renewcommand{\arraystretch}{1.15}
+    \begin{tabular}{l@{$\hspace{0.1em}\termDef$\ \ }l}
+    \WParamTrans{\Type} & \abs{A}{\TypeTrans{\Type}}{\TypeTrans{A} \rightarrow \Type} \\
+    \WParamTrans{\Prop} & \WParamTransProp \\
+    \WParamTrans{x} & $\WTermTrans{x}$ \\
+     
+    \WParamTrans{\abs{x}{A}{M}} & $\! \! \left \{ \begin{matrix*}[l]
+                                  \WParamTransPropAbs & \text{where }\ctyping{M}{B}\text{ and }\weaklypropFun[A,B]\\
+                                  \WParamTransNPropAbs & \otherwise
+                                  \end{matrix*} \right.$ \\
+    \WParamTrans{\app{\M{}}{\N{}}} & $\! \! \left \{ \begin{matrix*}[l]
+                                \app{\WParamTrans{M}}{\Trans{N}} & \text{where }\ctyping{M}{(\vardepArrow{A}{B})}
+                                \text{ and }\weaklypropFun[A,B]\\
+                                \app{\WParamTrans{M}}{\Trans{N}}{\WParamTrans{N}} & \otherwise
+                                \end{matrix*} \right.$ \\
+    \WParamTrans{\depArrow{x}{A}{B}} & $\! \! \left \{ \begin{matrix*}[l]
+                                      \varabs{f}{\depArrow{x}{\TypeTrans{A}}{\TypeTrans{B}}}  
+                                        {\depArrow{x}{\TypeTrans{A}}{
+                                                   \WParamTypeTrans[\Context,\smalltyping{x}{A}]{B} (\app{f}{x})}} &
+                                            \weaklypropFun[A,B] \\
+                                      \varabs{f}{\depArrow{x}{\TypeTrans{A}}{\TypeTrans{B}}}  
+                                        {\depArrow{x}{\TypeTrans{A}}
+                                                  {\WTermTrans{x}}{\WParamTypeTrans{A}\ x}{
+                                                   \WParamTypeTrans[\Context,\smalltyping{x}{A}]{B} (\app{f}{x})} 
+                                                  } 
+                                                        & \otherwise
+                                      \end{matrix*} \right.$ \\
+    \WParamTypeTrans{A} & \WParamTrans{A} \vspace{2mm}\\\hline
+    \rule{0pt}{15pt}\WContextTrans{\EContext} & \EContext \\
+    \WContextTrans{\Context, \typing{x}{A}} & $\!\! \left \{ \begin{matrix*}[l] 
+    \WContextTrans{\Context}, \typing{x}{\TypeTrans{A}}  & 
+                              \text{where }b = \True \text{ and }\neg\ \propFun[A]\\
+    \WContextTrans{\Context}, \typing{x}{\TypeTrans{A}}, 
+                              \typing{\WTermTrans{x}}{\app{\WParamTypeTrans{A}}{x}} & \otherwise
+    \end{matrix*}\right .$
+    \end{tabular}
+    \end{minipage}
+    \caption{Weakly Parametric Exceptional Translation}
+    \label{fig:weaklyParExcTransDef}
+\end{figure}
+
+\begin{Lemma}[Substitution]
+\label{lemma:substitution_lemma}
+Given a context \Context and two terms \M{} and \N{} such as \ctyping{\M{}}{B},
+\ctyping{\N{}}{A}, we have:
+\begin{center}
+$
+\renewcommand{\arraystretch}{1.15}
+\WParamTrans{M\{x:=N\}} \equiv 
+\left \{\begin{matrix*}[l]
+    \WParamTrans{M}\{x:=\Trans{N}\} & {\normalfont\weaklypropFun[A,B] }\\
+    \WParamTrans{M}\{x:=\Trans{N};\ \WTermTrans{x}:=\WParamTrans{N}\} & \otherwise
+\end{matrix*}
+\right .
+$
+\end{center}
+
+\end{Lemma}
+
+\begin{Proof} By induction over M over a generalized context.
+
+\begin{ProofCase}{\M{} \termDef{} \Type{}, \M{} \termDef{} \Prop{}}
+In both of this cases, whether $x = A$ or $x \neq A$,
+applying the substitution over the abstraction does not affect it and the substitution holds.
+\end{ProofCase}
+
+\begin{ProofCase}{\M{} \termDef{} \y{}, $y \neq x$}
+The equivalence holds trivially.
+\end{ProofCase}
+
+\begin{ProofCase}{\M{} \termDef{} $x$}
+Because the context has unique identifiers, we can conclude that 
+$A\equiv B$. It is also clear that $\weaklypropFun[A,A]\termEq\False$ from definition.
+We can conclude then:
+\begin{center}
+$\WParamTrans{\subst{x}{x}{N}}\equiv\subst{\WParamTrans{x}}{x}{\Trans{N}}{\WTermTrans{x}}{\WParamTrans{N}\}}$
+\end{center}
+
+\end{ProofCase}
+
+\begin{ProofCase}{\M{} \termDef{} \abs{y}{C}{M'}}
+If $y = x$, then equivalence holds because there is no need to substitute \x{} in \M{} and this is respected
+in the translation. Assuming $y \neq x$ we have \mbox{\WParamTrans{\abs{y}{C}{(M'\{x:=N\})}}}. 
+By the inversion lemma we know that $B=\depArrow{y}{C}{D}$ for some $C$ and $D$. Note that the translation
+works on the previous types and $A$ does not affect it. By unfolding the translation we can 
+get either:
+\begin{itemize}
+\item \abs{y}{\TypeTrans{\subst{C}{x}{N}}}{
+                \WParamTrans[\Context,\typing{y}{C}]{\subst{M'}{x}{N}}}
+\item \abs{y}{\TypeTrans{\subst{C}{x}{N}}}{
+           \WTermTrans{y}}{\app{\WParamTypeTrans{\subst{C}{x}{N}}}{y}}{
+                \WParamTrans[\Context,\typing{y}{C}]{\subst{M'}{x}{N}}}
+\end{itemize}
+Each case requires to do a case analysis over \weaklypropFun[A,B]. Both cases are similar: we show
+here the second case because is more general. Note that the translation for $M$ uses other context. This 
+is solved by applying \lemmaRef{lemma:ContextInvariance} on the $N$ context so the induction hypothesis
+can be applied with the extended context. By applying the induction hypothesis plus exceptional substitution
+(defining $C'\termDef\subst{\TypeTrans{C}}{x}{\Trans{N}}$) we have:
+\begin{itemize}
+\item \abs{y}{C'}{
+           \WTermTrans{y}}{\app{(\subst{\WParamTypeTrans{C}}{x}{N})}{y}}{
+                \subst{\WParamTrans[\Context,\typing{y}{C}]{M'}}{x}{N}}
+\item \abs{y}{C'}{
+           \WTermTrans{y}}{\app{(\subst{\WParamTypeTrans{C}}{x}{N}{\WTermTrans{x}}{\WParamTrans{N}})}{y}}{
+                \subst{\WParamTrans[\Context,\typing{y}{C}]{M'}}{x}{N}{\WTermTrans{x}}{\WParamTrans{N}}}
+\end{itemize}
+It is clear in each case that they are equal to:
+\begin{itemize}
+\item \subst{(\abs{y}{\TypeTrans{C}}{
+           \WTermTrans{y}}{\app{\WParamTypeTrans{C}}{y}}{
+                \WParamTrans[\Context,\typing{y}{C}]{M'}})}{x}{\Trans{N}}
+\item \subst{(\abs{y}{\TypeTrans{C}}{
+           \WTermTrans{y}}{\app{\WParamTypeTrans{C}}{y}}{
+                \WParamTrans[\Context,\typing{y}{C}]{M'}})}{x}{\Trans{N}}{\WTermTrans{x}}{\WParamTrans{N}}
+\end{itemize}
+The last one is due to $\WTermTrans{x}$ being a fresh identifier
+\end{ProofCase}
+
+\begin{ProofCase}{\M{} \termDef{} \depArrow{y}{A}{B}}
+Similar to the previous case. If $y = x$, then equivalence holds. If $y \neq x$, unfolding the translation, 
+applying the induction hypothesis and folding the substitution gives the result.
+\end{ProofCase}
+
+\begin{ProofCase}{\M{} \termDef{} \app{M'}{N'}}
+Here we need to use the inversion lemma to establish the form of $B$. Once established it is possible to unfold
+the translation and apply both the induction hypothesis and the exceptional substitution.
+\newcommand{\substEnv}[0]{\ensuremath{\{x\termDef{} \Trans{N}\}}}
+\newcommand{\substEnvv}[0]{\ensuremath{\{x\termDef{} N\,;\ \WTermTrans{x}\termDef\WParamTrans{N}\}}}
+\begin{itemize}[noitemsep]
+    
+    \item \app{L_1}{H}
+    \item \app{L_2}{H}
+    \item \app{L_1}{H}{K_1}
+    \item \app{L_2}{H}{K_1}
+    \item \app{L_1}{H}{K_2}
+    \item \app{L_2}{H}{K_2}
+\end{itemize}
+Where $L_1\termDef\WParamTrans{M'}\substEnv, L_2\termDef\WParamTrans{M'}\substEnvv,
+K_1\termDef\WParamTrans{N'}\substEnv, K_2\termDef\WParamTrans{N'}\substEnvv, H\termDef\Trans{N'}\substEnv$.\\
+If all the subindexes of the resulting term are 1, then it is equivalent to
+$(\WParamTrans{\app{M'}{N'}}\substEnv)$. If not, then it is equivalent 
+to $(\WParamTrans{\app{M'}{N'}}\substEnvv)$. The last result
+is due to the fact that substitute for a free variable ($\WTermTrans{x}$) in a term does not affect it. 
+\end{ProofCase}
+\end{Proof}
+
+\begin{Lemma}[Conversion]
+\label{lemma:conversion}
+Given two terms \ctyping{\M{}}{A}, \ctyping{\N{}}{B}, if \convertible{\M{}}{\N{}} then
+\convertible{\WParamTrans{\M{}}}{\WParamTrans{\N{}}}
+\end{Lemma}
+
+\begin{Proof}
+By induction on the conversion rule.
+\begin{ProofCase}{$\beta$-reduction}
+We have $\M{}\termDef\app{(\abs{x}{A}{M'})}{N'}$ and $\N{}\termDef\M{}'\{x\termDef \N{}'\}$. The 
+translation over \M{} could be \mbox{$\app{(\WParamTransPropAbs[x][A][M])}{\Trans{N'}}$} or 
+\mbox{$\app{(\WParamTransNPropAbs[x][A][M])}{\Trans{N'}}{\WParamTrans{N'}}$}. 
+Both terms belong to the language and it is possible to apply $\beta$-reductions; one in the former and 
+two in the latter. Applying \lemmaRef{lemma:substitution_lemma} over N establishes the equivalence.
+\end{ProofCase}
+
+\begin{ProofCase}{$\eta$-expansion}
+The translation maps functions to functions. It is necessary to establish the following equivalence
+\begin{center}
+$\WParamTrans{\abs{x}{A}{\app{M}{x}}} \termDef \left \{
+\begin{matrix*}[l]
+    \app{\WParamTransPropAbs}{x} \\
+    \app{\WParamTransNPropAbs}{x}{\WTermTrans{x}}
+\end{matrix*} \right \} \equiv \WParamTrans{M}$    
+\end{center}
+In both cases the equivalence holds because those terms belong to the language and $\eta$-expansion 
+can be applied.
+\end{ProofCase}
+
+\begin{ProofCase}{application}
+We have $\M\termDef(\app{\M_1}{\N_1})$ and $\N\termDef(\app{\M_2}{\N_2})$. There are two cases:
+\begin{itemize}
+    \item $\M_1\equiv\M_2$ and $\N_1=\N_2$
+    \item $\M_1=\M_2$ and $\N_1\equiv\N_2$
+\end{itemize}
+In each case it is enough to unfold the translation and use the inductive hypothesis. 
+Depending on the case, it might need
+the fact that if \convertible{N}{M} then \convertible{\Trans{N}}{\Trans{M}}
+\end{ProofCase}
+\end{Proof}
+
+The following lemma demonstrate a simple result of the typing judgments.
+\begin{Lemma}[Well-formed of context]
+Given $\Context,M,A$ such as \ctyping{M}{A}, then \wfContext{\Context} 
+\end{Lemma}
+
+\begin{Proof}
+This is a straightforward induction on the typing derivation. The well-formed
+of the context is proved recursively at each typing judgment.
+\end{Proof}
+
+Here we state a classic lemma for the lambda calculus.
+\begin{Lemma}[Context permutation]
+Given $\Context,M,A$ such as \ctyping{M}{A}, then given a 
+context $\varContext$ that is a permutation of \Context{}, then \ctyping[][\varContext]{M}{A}.
+\end{Lemma}
+
+\begin{WarningProof}
+\textsc{Todo}. By induction on the typing derivation. The \CicWeak case does not go through.
+\end{WarningProof}
+
+The following lemma establish that it is possible to change the context for a 
+bigger one. It is necessary to keep in mind that the bindings declared 
+in a context are unique.
+\begin{Lemma}[Context invariance]
+\label{lemma:ContextInvariance}
+Given $\Context,M,A$ such as \ctyping{M}{A}, then given a 
+context $\varContext$ such as 
+$\Context \subseteq  \varContext$ we have \ctyping[][\varContext]{M}{A}
+\end{Lemma}
+
+\begin{Proof}
+By induction on the typing judgment 
+\begin{SubProofCase}{\CicType}
+We need to prove $\ctyping[][\varContext]{\Type}{\Type[j]}$. 
+This is straight forward becuase \varContext{} is well-formed.
+\end{SubProofCase}
+
+\begin{SubProofCase}{\CicProp}
+Similar to the previous case.
+\end{SubProofCase}
+
+\begin{SubProofCase}{\CicWeak}
+We have to prove $\ctyping[][\varContext]{M}{B}$ with $\Context \subseteq \varContext$. We know
+that the variable $a$ belongs to \varContext{} so we define
+$\varContext'\termDef\varContext,\typing{a}{A}$.
+and apply the permutation lemma. We have to prove now 
+$\ctyping[\typing{a}{A}][\varContext']{M}{B}$. By applying the induction hypothesis with 
+$\varContext'$ we get $\ctyping[][\varContext']{M}{B}$ and $\ctyping[][\varContext']{A}{s}$,
+which allows us to apply the \CicWeak{} judgment.
+\end{SubProofCase}
+
+\begin{SubProofCase}{\CicTypeProd, \CicPropProd, \CicImpred, (\CicAbs)}
+In all these cases the proof is similar. We have a context \varContext{} that is used to 
+type the product (lambda).
+Using the induction hypothesis with \varContext{} for the codomain (product) and with 
+$\varContext,\typing{x}{A}$ for the domain (body),
+we get the hypothesis to conclude with the respective 
+typing judgment $\ctyping[][\varContext]{\depArrow{x}{A}{B}}{s}$ 
+($\ctyping[][\varContext]{\abs{x}{A}{M}}{\depArrow{x}{A}{B}}$)
+\end{SubProofCase}
+
+\begin{SubProofCase}{\CicConv, \CicApp}
+These cases are straightforward because the context does not change.
+\end{SubProofCase}
+\end{Proof}
+
+\begin{Lemma}[Context weakening]
+\label{lemma:ContextWeakening}
+Given $\Context,M,A$ such as \ctyping{M}{A}, then given a 
+context $\FreeVar{M}\varContext\subseteq\Context$ such that
+$\Context' \subseteq\FreeVar{M}$ and $\varContext\termDef\Context-\Context'$ we have 
+$\ctyping[][\varContext]{M}{A}$.
+\end{Lemma}
+\begin{Proof}
+This proof is similar to \lemmaRef{lemma:ContextInvariance}
+\end{Proof}
+
+\begin{Theorem}[Typing Soundness]
+\label{theorem:typingSoundness}
+If \ctyping{M}{A} then 
+\ctyping[][\WContextTrans[b]{\Context}]{\WParamTrans{M}}{\app{\WParamTypeTrans{A}}{\Trans{M}}} with 
+$b=\propFun[A]$.
+\end{Theorem}
+
+\begin{Proof}
+By induction over the typing derivation.
+\begin{ProofCase}{\CicType}
+The typing relation to prove is the following:
+\begin{center}
+\ctyping[][\WContextTrans[\False]{\Context}]{\WParamTrans{\Type}}{\app{\WParamTypeTrans{\Type[j]}}{\Trans{\Type}}}
+\termEq{}
+\ctyping[][\WContextTrans[\False]{\Context}]{%
+    \abs{A}{\TypeTrans{\Type}}{\arrow{\TypeTrans{A}}{\Type}}}{%
+    \app{(\abs{A}{\TypeTrans{\Type[j]}}{\arrow{\TypeTrans{A}}}}{\Type[j])}{\Trans{\Type}}
+    }
+\end{center}
+The type of the abstraction is well-typed because $\Trans{\Type}:\type$, $\type:\type[j]$ and 
+$\type[j]\equiv\TypeTrans{\Type[j]}$. Applying \CicConv with the $\beta$-reduced type we get:
+\begin{center}
+\ctyping[][\WContextTrans[\False]{\Context}]{%
+    \abs{A}{\TypeTrans{\Type}}{\arrow{\TypeTrans{A}}{\Type}}}{%
+    \arrow{\TypeTrans{\Type}}{\Type[j]}
+    }
+\end{center}
+which holds by \CicAbs.
+\end{ProofCase}
+
+\begin{ProofCase}{\CicProp}
+Similar to the previous case:
+\begin{center}
+\ctyping[][\WContextTrans[\True]{\Context}]{\WParamTrans{\Prop}}{\app{\WParamTypeTrans{\Type[j]}}{\Trans{\Prop}}}
+\termEq{} 
+\ctyping[][\WContextTrans[\True]{\Context}]{%
+    \abs{A}{\TypeTrans{\Prop}}{\arrow{\TypeTrans{A}}{\Prop}}}{%
+    \app{(\abs{A}{\TypeTrans{\Type}}{\arrow{\TypeTrans{A}}}}{\Type)}{\Trans{\Prop}}
+    }
+\end{center}
+With $\Trans{\Prop{}}:\type$, $\type\equiv\TypeTrans{\Type}$. Applying a $\beta$-reduction on the type gives:
+\begin{center}
+\ctyping[][\WContextTrans[\True]{\Context}]{%
+    \abs{A}{\TypeTrans{\Prop}}{\arrow{\TypeTrans{A}}{\Prop}}}{%
+    \arrow{\TypeTrans{\Prop}}{\Type}
+    }
+\end{center}
+which holds by \CicAbs.
+\end{ProofCase}
+
+\begin{WarningProofCase}{\CicWeak}
+\textsc{Disclaimer: The rules of the calculus does not allows this proof due to the weakening is
+only allowed on sorts. check}
+
+\noindent We need to prove:
+\begin{center}
+\ctyping[][\WContextTrans{\Context,\typing{x}{A}}]{%
+           \WParamTrans[\Context,\typing{x}{A}]{M}}{\app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{\Trans{M}}}    
+\end{center}
+
+This case is the weakening. We know by induction that \WParamTypeTrans{A} is an abstraction of type
+\arrow{\TypeTrans{A}}{s} and that
+$\ctyping[\WContextTrans{\Context}][]{\WParamTrans{M}}{\app{\WParamTypeTrans{B}}}{\Trans{M}}$ 
+with $b=\weaklypropFun[B]$. It only remains to do a case analysis over $b$ and $\propFun[A]$,
+which can extend context with
+\begin{center}
+$\typing{x}{\TypeTrans{A}}$ 
+\hspace{2em}
+or
+\hspace{2em}
+\mbox{$\typing{x}{\TypeTrans{A}},\typing{\WTermTrans{x}}{\app{\WParamTrans{A}}{x}}$}    
+\end{center}
+Each one is well-founded so is possible to apply the weakening rule once and twice, respectively,
+to establish the result.
+\end{WarningProofCase}
+
+\begin{ProofCase}{\CicPropProd}
+We need to prove:
+\begin{center}
+$\ctyping[][\WContextTrans[\False]{\Context}]{%
+           \WParamTrans{\depArrow{x}{A}{B}}}{%
+           \app{\WParamTypeTrans{\Type}}{\Trans{\depArrow{x}{A}{B}}}}
+$
+\end{center}
+Using the hypothesis we get $\propFun[\depArrow{x}{A}{B}]\termEq\False$, which gives:
+\begin{center}
+$\ctyping[][\WContextTrans[\False]{\Context}]{%
+           \varabs{f}{\depArrow{x}{\TypeTrans{A}}{\TypeTrans{B}}}{%
+                  \depArrow{x}{\TypeTrans{A}}{\WTermTrans{x}}{\app{\WParamTypeTrans{A}}{x}}{
+                            \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{(\app{f}{x})}}}}{%
+           \arrow{\TypeTrans{\depArrow{x}{A}{B}}}{\Type}}
+$    
+\end{center}
+Applying \CicAbs{} and defining
+$\varContext\termDef\WContextTrans[\False]{\Context},\typing{f}{\depArrow{x}{\TypeTrans{A}}{\TypeTrans{B}}}$
+we have to show:
+\begin{itemize}
+\item $\ctyping[][\WContextTrans[\False]{\Context}]{\depArrow{x}{\TypeTrans{A}}{\TypeTrans{B}}}{\Type}$
+\item $\ctyping[][\varContext]{\depArrow{x}{\TypeTrans{A}}{\WTermTrans{x}}{\app{\WParamTypeTrans{A}}{x}}{
+                                       \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{(\app{f}{x})}}}{
+                             \Type}$
+\end{itemize}
+The first proof follows by the soundness of the exceptional translation, the fact that 
+$\TypeTrans{\Context} \subseteq \WContextTrans[\False]{\Context}$ and by 
+\lemmaRef{lemma:ContextInvariance}. For the second one, it is necessary to apply
+\CicPropProd{}. Now we have to prove two another cases:
+\begin{itemize}
+\item $\ctyping[][\varContext]{\TypeTrans{A}}{\Prop}$
+\item $\ctyping[][\varContext',\typing{x}{\TypeTrans{A}}]{
+                  \depArrow{\WTermTrans{x}}{\app{\WParamTypeTrans{A}}{x}}{
+                            \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{(\app{f}{x})}}}{
+                  \Type}$
+\end{itemize}
+Same as before, the first property holds by the soundness of the exceptional translation and 
+context invariance. Applying \CicTypeProd{} for the second case
+we have to prove:
+\begin{itemize}
+\item $\ctyping[][\varContext,\typing{x}{\TypeTrans{A}}]{\app{\WParamTypeTrans{A}}{x}}{\Prop}$
+\item $\ctyping[][\varContext,\typing{x}{\TypeTrans{A}},\typing{\WTermTrans{x}}{\app{\WParamTypeTrans{A}}{x}}]{
+                  \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{(\app{f}{x})}}{
+                  \Type}$
+\end{itemize}
+For the first case, we apply the induction hypothesis on $\ctyping{A}{\Prop}$ which gives
+$\ctyping[\WContextTrans[\True]{\Context}][]{\WParamTypeTrans{A}}{\arrow{\TypeTrans{A}}{\Prop}}$.
+It is important to note that
+the context is $\WContextTrans[\True]{\Context}$ instead of $\WContextTrans[\False]{\Context}$. We also 
+know that $\WContextTrans[\True]{\Context} \subseteq \WContextTrans[\False]{\Context}$ due to the
+definition of the translation. With this in mind, we apply \lemmaRef{lemma:ContextInvariance}
+to derive 
+$\ctyping[\varContext,\typing{x}{\TypeTrans{A}}][]{\WParamTypeTrans{A}}{\arrow{\TypeTrans{A}}{\Prop}}$
+and applying the \CicApp{} judgment allows us to conclude the first case. The remaining case is similar to the 
+previous: apply the induction hypothesis to $\ctyping[\typing{x}{A}]{B}{\Type}$ gives 
+$\ctyping[][\WContextTrans[\False],\typing{x}{\TypeTrans{A}},\typing{\WTermTrans{x}}{\app{\WParamTypeTrans{A}}{x}}]{
+        \WParamTypeTrans[\Context,\typing{x}{A}]{B}}{\arrow{\TypeTrans{B}}{\Type}}$.
+Applying \lemmaRef{lemma:ContextInvariance} to extend the context, and applying the \CicApp{} judgment two times 
+concludes the proofing for this case.
+\end{ProofCase}
+
+\begin{ProofCase}{\CicTypeProd}
+Similar to the previous case. With $\propFun[\depArrow{x}{A}{B}]\termEq\False$ we need to prove:
+\begin{center}
+$\ctyping[][\WContextTrans[\False]{\Context}]{%
+           \varabs{f}{\depArrow{x}{\TypeTrans{A}}{\TypeTrans{B}}}{%
+                  \depArrow{x}{\TypeTrans{A}}{\WTermTrans{x}}{\app{\WParamTypeTrans{A}}{x}}{
+                            \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{(\app{f}{x})}}}}{%
+           \arrow{\TypeTrans{\depArrow{x}{A}{B}}}{\Type}}
+$
+\end{center}
+The proof goes in a similar way to the \CicPropProd{} case, with the only difference that we need to prove
+$\ctyping[][\varContext]{\TypeTrans{A}}{\Type}$
+instead of 
+$\ctyping[][\varContext]{\TypeTrans{A}}{\Prop}$.
+This is done by applying the induction hypothesis over it, which gives 
+$\ctyping[\WContextTrans[\False]{\Context}][]{\WParamTypeTrans{A}}{\arrow{\TypeTrans{A}}{\Type}}$. Note
+that the translated context is the same along the proof. The rest remains the same.
+\end{ProofCase}
+
+\begin{ProofCase}{\CicImpred}
+It is necessary to perform a case analysis over the sort of the argument.
+\begin{SubProofCase}{$s\termDef\Prop$}
+This case is equal to the \CicTypeProd case with \Type{} and \WContextTrans[\False]{\Context}
+replaced by \Prop{} and \WContextTrans[\True]{\Context}, respectively.  
+\end{SubProofCase}
+
+\begin{SubProofCase}{$s\termDef\Type$}
+In this case we need to prove:
+\begin{center}
+$\ctyping[][\WContextTrans[\True]{\Context}]{%
+           \varabs{f}{\depArrow{x}{\TypeTrans{A}}{\TypeTrans{B}}}{%
+                  \depArrow{x}{\TypeTrans{A}}{
+                            \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{(\app{f}{x})}}}}{%
+           \arrow{\TypeTrans{\depArrow{x}{A}{B}}}{\Prop}}
+$
+\end{center}
+By \CicAbs{} and defining
+$\varContext\termDef\WContextTrans[\True]{\Context},\typing{f}{\depArrow{x}{\TypeTrans{A}}{\TypeTrans{B}}}$
+we get:
+\begin{itemize}
+\item $\ctyping[][\WContextTrans[\True]{\Context}]{\depArrow{x}{\TypeTrans{A}}{\TypeTrans{B}}}{\Prop}$
+\item $\ctyping[][\varContext]{\depArrow{x}{\TypeTrans{A}}{
+                                       \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{(\app{f}{x})}}}{
+                             \Prop}$
+\end{itemize}
+In the first proof, we have 
+\ctyping[][\TypeTrans{\Context}]{\depArrow{x}{\TypeTrans{A}}{\TypeTrans{B}}}{\Prop} by the 
+soundness of the exceptional translation. We also now that
+$\TypeTrans{\Context} \subseteq \WContextTrans[\True]{\Context}$. This two hypothesis allow us to conclude 
+the subproof by \lemmaRef{lemma:ContextInvariance}. 
+In the second case, it is necessary to apply \CicAbs{}, which raises another two cases:
+\begin{itemize}
+\item $\ctyping[][\varContext]{\TypeTrans{A}}{\Type}$
+\item $\ctyping[][\varContext,\typing{x}{\TypeTrans{A}}]{
+                                       \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{(\app{f}{x})}}{
+                             \Prop}$
+\end{itemize}
+The first case is proved by the soundness of exceptional translation and context invariance. For the second one 
+we apply the induction hypothesis over \ctyping[\typing{x}{A}]{B}{\Prop} which gives:
+\begin{center}
+$\ctyping[\typing{x}{\TypeTrans{A}}]{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{\arrow{\TypeTrans{B}}{\Prop}}$
+\end{center}
+We conclude by applying \CicAbs{} twice.
+\end{SubProofCase}
+\end{ProofCase}
+
+\begin{ProofCase}{\CicConv}
+By induction hypothesis we have:
+\begin{itemize}
+    \item \ctyping[][\WContextTrans{\Context}]{\WParamTrans{M}}{\app{\WParamTypeTrans{B}}{\Trans{M}}}.
+    \item \ctyping[][\WContextTrans{\Context}]{\WParamTrans{A}}{\arrow{\TypeTrans{A}}{s}}.
+    \item \convertible{\WParamTrans{A}}{\WParamTrans{B}} by \lemmaRef{lemma:conversion}.
+\end{itemize}
+It remains to establish
+\ctyping[][\WContextTrans{\Context}]{\WParamTrans{M}}{\app{\WParamTypeTrans{A}}{\Trans{M}}} which follows by 
+\CicConv.
+\end{ProofCase}
+
+\begin{ProofCase}{\CicAbs}
+In this case is necessary to perform a case analysis over the result of \weaklypropFun{}.
+\begin{SubProofCase}{$\weaklypropFun[A,B] = \True$}
+For this case we need to prove:
+\begin{center}
+$\ctyping[][\WContextTrans{\Context}]{\abs{x}{\TypeTrans{A}}{\WParamTrans{M}}}{
+        \app{(\varabs{f}{\depArrow{x}{\TypeTrans{A}}{\TypeTrans{B}}}{
+                       \depArrow{x}{\TypeTrans{A}}{
+                         \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{
+                              (\app{f}{x})}}})}}{
+             (\abs{x}{\TypeTrans{A}}{\Trans{M}})}$
+\end{center}
+Note that the application on the type is valid because the lambda has type 
+\depArrow{x}{\TypeTrans{A}}{\TypeTrans{B}}. By \CicConv{} we need to prove:
+\begin{center}
+$\ctyping[][\WContextTrans{\Context}]{\abs{x}{\TypeTrans{A}}{\WParamTrans{M}}}{
+        \depArrow{x}{\TypeTrans{A}}{(
+                    \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{(\subst{\Trans{M}}{x}{x})})}}$
+\end{center}
+Also, in this setting we have $M\termEq\subst{\Trans{M}}{x}{x}$ Applying \CicAbs{} raises two cases:
+\begin{itemize}
+\item $\ctyping[][\WContextTrans{\Context}]{
+               \depArrow{x}{\TypeTrans{A}}{(
+                    \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{\Trans{M}})}}{
+                s}$
+\item $\ctyping[][\WContextTrans{\Context},\typing{x}{\TypeTrans{A}}]{\WParamTrans[\Context,\typing{x}{A}]{M}}{
+                \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{\Trans{M}}}$
+\end{itemize}
+For the first case we apply the induction hypothesis over 
+$\ctyping{\depArrow{x}{A}{B}}{s}$ which gives:
+\begin{center}
+$\ctyping[][\WContextTrans{\Context}]{
+            \varabs{f}{\depArrow{x}{\TypeTrans{A}}{\TypeTrans{B}}}{
+                       \depArrow{x}{\TypeTrans{A}}{
+                         \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{
+                              (\app{f}{x})}}}}{
+              \arrow{\depArrow{x}{\TypeTrans{A}}{\TypeTrans{B}}}{s}}$
+\end{center}
+When the previous term is applied to $\abs{x}{\TypeTrans{A}}{\Trans{M}}$, which exists by 
+the soundness of exceptional translation over the hypotheses and applying \CicAbs{} over them,
+and reduced, it allows us to prove the desired term. The application is valid by \CicAbs{}. 
+For the second case we apply the induction hypothesis over \ctyping[\typing{x}{A}]{M}{B} gives:
+\begin{center}
+$\ctyping[][\WContextTrans{\Context,\typing{x}{A}}]{
+            \WParamTrans[\Context,\typing{x}{A}]{M}}{
+            \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{\Trans{M}}}$
+\end{center}
+Also, we have
+\begin{center}
+$\FreeVar{M}\subseteq\WContextTrans{\Context},\typing{x}{A}\subseteq\WContextTrans{\Context,\typing{x}{A}}$
+\end{center}
+for any value of $b$, so we can apply \lemmaRef{lemma:ContextWeakening}
+and establish this case.
+\end{SubProofCase}
+
+\begin{SubProofCase}{$\weaklypropFun[A,B] = \False$}
+In the same style as before, we prove the reduced judgment:
+\begin{center}
+$\ctyping[][\WContextTrans{\Context}]{\abs{x}{\TypeTrans{A}}{
+                                          \WTermTrans{x}}{\app{\WParamTypeTrans{A}}{x}}{
+                                          \WParamTrans{M}}}{
+        \depArrow{x}{\TypeTrans{A}}{\WTermTrans{x}}{\app{\WParamTypeTrans{A}}{x}}{(
+                    \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{\Trans{M}})}}$
+\end{center}
+As before, we apply \CicAbs{}:
+\begin{itemize}
+\item $\ctyping[][\WContextTrans{\Context}]{
+               \depArrow{x}{\TypeTrans{A}}{\WTermTrans{x}}{\app{\WParamTypeTrans{A}}{x}}{(
+                    \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{\Trans{M}})}}{
+                s}$
+\item $\ctyping[][\WContextTrans{\Context},\typing{x}{\TypeTrans{A}}]{
+                  \varabs{\WTermTrans{x}}{\app{\WParamTypeTrans{A}}{x}}{
+                            \WParamTrans[\Context,\typing{x}{A}]{M}}}{
+                \enDepArrow{\WTermTrans{x}}{\app{\WParamTypeTrans{A}}{x}}{
+                            \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{\Trans{M}}}}$
+\end{itemize}
+The first case is similar to previous cases: construct the lambda, apply the induction hypothesis
+on the type hypothesis, apply the constructed lambda over the previous term and conclude. 
+For the second case, is necessary to apply \CicAbs{}:
+\begin{itemize}
+\item $\ctyping[][\WContextTrans{\Context}]{
+               \enDepArrow{\WTermTrans{x}}{\app{\WParamTypeTrans{A}}{x}}{(
+                    \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{\Trans{M}})}}{
+                s}$
+\item $\ctyping[][\WContextTrans{\Context},
+                  \typing{x}{\TypeTrans{A}},\typing{\WTermTrans{x}}{\WParamTypeTrans{A}}]{
+                \WParamTrans[\Context,\typing{x}{A}]{M}}{
+                \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{\Trans{M}}}$
+\end{itemize}
+In this case we apply the induction hypothesis over $\ctyping[\typing{x}{A}]{M}{B}$ which gives:
+\begin{center}
+$\ctyping[][\WContextTrans{\Context,\typing{x}{A}}]{
+                \WParamTrans[\Context,\typing{x}{A}]{M}}{
+                \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{\Trans{M}}}$
+\end{center}
+Due to the value of the weakly value we have 
+$\WContextTrans{\Context,\typing{x}{A}}
+\termEq
+\WContextTrans{\Context},\typing{x}{\TypeTrans{A}},\typing{\WTermTrans{x}}{\WParamTypeTrans{A}}$,
+which concludes this case.
+\end{SubProofCase}
+\end{ProofCase}
+
+\begin{ProofCase}{\CicApp}
+We proceed by performing a case analysis over \weaklypropFun{}
+\begin{SubProofCase}{$\weaklypropFun[A,B] = \True$}
+We have to prove:
+\begin{center}
+$\ctyping[\WContextTrans{\Context}][]{\WParamTrans{\app{M}{N}}}{
+          \app{\WParamTypeTrans{\subst{B}{x}{N}}}{(\Trans{\app{M}{N}})}}$
+\end{center}
+Expanding the definitions and applying \lemmaRef{lemma:substitution_lemma}, we get:
+\begin{center}
+$\ctyping[\WContextTrans{\Context}][]{
+         \app{\WParamTrans{M}}{\Trans{N}}}{
+         \app{\subst{\WParamTypeTrans{B}}{x}{\Trans{N}}}{
+              (\app{\Trans{M}}{\Trans{N}})}}$
+\end{center}
+Applying the induction hypothesis over M and the soundness of the exceptional translation over N gives:
+\begin{itemize}
+\item $\ctyping[\WContextTrans{\Context}][]{\WParamTrans{M}}{
+                \depArrow{x}{\TypeTrans{A}}{(
+                          \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{(\app{\Trans{M}}{x})})}}$
+\item $\ctyping[\WContextTrans{\Context}][]{\Trans{N}}{\TypeTrans{A}}$ (plus context invariance)
+\end{itemize}
+Applying \CicApp{} yields:
+\begin{center}
+$\ctyping[\WContextTrans{\Context}][]{\WParamTrans{\app{M}{N}}}{
+          \subst{(\app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{(\app{\Trans{M}}{x})})}{x}{\Trans{N}}}$
+\end{center}
+Noting that $\subst{\Trans{M}}{x}{\Trans{N}}\termEq\Trans{M}$ we have:
+\begin{center}
+$\ctyping[\WContextTrans{\Context}][]{
+         \app{\WParamTrans{M}}{\Trans{N}}}{
+         \app{\subst{\WParamTypeTrans{B}}{x}{\Trans{N}}}{
+              (\app{\Trans{M}}{\Trans{N}})}}$
+\end{center}
+\end{SubProofCase}
+
+\begin{SubProofCase}{$\weaklypropFun[A,B] = \False$}
+Same as before, expanding the definitions and applying \lemmaRef{lemma:substitution_lemma} we have to prove:
+\begin{center}
+\ctyping[\WContextTrans{\Context}][]{
+         \app{\WParamTrans{M}}{\Trans{N}}{\WParamTrans{N}}}{
+         \app{\subst{\WParamTypeTrans{B}}{x}{\Trans{N}}{\WTermTrans{x}}{\WParamTrans{N}}}{
+              (\app{\Trans{M}}{\Trans{N}})}}
+\end{center}
+Applying the induction hypothesis and the soundness of the exceptional translation yields:
+\begin{itemize}
+\item $\ctyping[\WContextTrans{\Context}][]{\WParamTrans{M}}{
+                \depArrow{x}{\TypeTrans{A}}{\WTermTrans{x}}{\app{\WParamTypeTrans{A}}{x}}{(
+                          \app{\WParamTypeTrans[\Context,\typing{x}{A}]{B}}{(\app{\Trans{M}}{x})})}}$
+\item $\ctyping[\WContextTrans{\Context}][]{\Trans{N}}{\TypeTrans{A}}$ (plus context invariance)
+\item $\ctyping[\WContextTrans{\Context}][]{\WParamTrans{N}}{\app{\WParamTypeTrans{A}}{\Trans{N}}}$
+\end{itemize}
+\end{SubProofCase}
+We can apply \CicApp{} with the first and second hypothesis to get:
+\begin{center}
+$\ctyping[\WContextTrans{\Context}][]{
+         \app{\WParamTrans{M}}{\Trans{N}}}{
+              \enDepArrow{\WTermTrans{x}}{\app{\WParamTypeTrans{A}}{\Trans{N}}}{
+                         \app{\subst{\WParamTypeTrans{B}}{x}{\Trans{N}}}}{
+              (\app{\Trans{M}}{\Trans{N}})}}$
+\end{center}
+and apply this with the third hypothesis:
+\begin{center}
+$\ctyping[\WContextTrans{\Context}][]{
+         \app{\WParamTrans{M}}{\Trans{N}}}{
+              \enDepArrow{\WTermTrans{x}}{\app{\WParamTypeTrans{A}}{\Trans{N}}}{
+                         \app{\subst{\WParamTypeTrans{B}}{x}{\Trans{N}}{\WTermTrans{x}}{\WParamTrans{N}}}}{
+              (\subst{\app{\Trans{M}}{\Trans{N}}}{\WTermTrans{x}}{\WParamTrans{N}})}}$
+\end{center}
+Due to $\WTermTrans{x}\in\FreeVar{\app{\Trans{M}}{\Trans{N}}}$ we have that 
+$\subst{\app{\Trans{M}}{\Trans{N}}}{\WTermTrans{x}}{\WParamTrans{N}}\termEq\app{\Trans{M}}{\Trans{N}}$
+so the judgment holds.
+\end{ProofCase}
+
+\noindent The rest of the cases are trivial.
+\end{Proof}
+
+\section{Translation of Inductives}
+
+Up to this point, we have considered \CCw{}, which is a system similar to \CIC{} without inductives. We now 
+add the following elements to \CCw{}: inductives in the style of \defRef{def:InductiveIntro},
+elimination of inductive in the style of \defRef{def:InductiveElim} and the related typing judgment.
+This addition forces a modification in the translation to take into account the inductives, 
+both the definitions and the appearance in terms.
+
+As stated in \cite{tabareau:FailureIsNotAnOption}, nested inductive types cannot be translated in the 
+exceptional layer. Nevertheless,
+most of nested inductive types can be represented isomorphically as mutual inductives ones,
+which do admit a translation.
+
+\todo{This should be moved to the background part when presenting the translations}
+Taking the above into account, the translation of inductives works by defining new ones. One for 
+the exceptional layer and another for the weakly parametric that uses the previous one.
+Due to the change of syntax, we present how both the exceptional and the weakly parametric exceptional translations
+work on inductives.
+\begin{Definition}
+\label{def:TransInductiveDef}
+Let be $\IndIntro[k][\varContext_\IndD][\varContext_C]$ a valid inductive block
+definition, as given in \defRef{def:InductiveDef}. 
+We define the exceptional translation 
+$\IndIntro[k][\varContext_{\ConstructorTrans{\IndD}}][\varContext_{\ConstructorTrans{C}}]$
+of the previous block where:
+\newcommand{\ArgTrans}[1]{\ensuremath{[\![#1]\!]_{\text{\mathtexttt{Ind}}}}}
+\begin{center}
+$\varContext_{\ConstructorTrans{\IndD}} 
+=
+\{\ConstructorTrans{\IndD_i}: \ArgTrans{T} \ |\ \typing{\IndD_i}{T} \in \varContext_\IndD\}
+$ \\
+$\varContext_{\ConstructorTrans{C}} 
+=
+\{\ConstructorTrans{c_i}: \ArgTrans{T} \ |\ \typing{c_i}{T} \in \varContext_C\}
+$
+\end{center}
+with $\ArgTrans{\cdot}$ defined as below (note that it is locally redefined what it means the type
+translation of inductives)
+
+\begin{tabular}{l@{$\hspace{0.1em}\termDef$\ \ }l}
+$\TypeTrans{\app{\IndD}{A_1}{\dots}{\A_{i_\IndD}}}$ & $\app{\ConstructorTrans{\IndD}}{\TypeTrans{A_1}}{
+                                                                                      \dots}{
+                                                                                      \TypeTrans{A_{i_\IndD}}}$\\
+$\ArgTrans{\depArrow{x}{A}{B}}$ & $\depArrow{x}{\TypeTrans{A}}{\ArgTrans{B}}$ \\
+$\ArgTrans{A}$ & $\TypeTrans{A}$
+\end{tabular}
+
+%\begin{itemize}
+%\item parameters $\WIndArgTrans[\cdot]{\typing{p_1}{P_1},\dots,\typing{p_n}{P_n}}$
+%\item indices 
+%      $\WIndArgTrans[\Context']{\typing{i_1}{I_1},\dots,\typing{i_m}{I_m}},
+%       x:\app{\ConstructorTrans{\IndD}}{p_1}{\dots}{p_n}{i_1}{\dots}{i_m}$
+%\item constructors \newline
+%  $\WTermTrans[1]{c}:\Pi\WIndArgTrans[\Context']{\typeVec{a_1}{A_1}}.
+%                \app{\WTermTrans{\IndD}}{
+%                    \IndParamTerm{p_1}{1}}{
+%                    \dots}{
+%                    \IndParamTerm{p_1}{n}}{
+%                    \IndIndexTerm{V_{1,1}}{1}}{
+%                    \dots}{
+%                    \IndIndexTerm{V_{1,m}}{m}}{
+%                    (\app{\ConstructorTrans{c_1}}{\vv{p}}{\vv{a_1}})
+%                    }$
+%  \newline
+%  \dots
+%  \newline
+%  $\WTermTrans[k]{c}:\Pi\WIndArgTrans[\Context']{\typeVec{a_k}{A_k}}.
+%                \app{\WTermTrans{\IndD}}{
+%                    \IndParamTerm{p_1}{1}}{
+%                    \dots}{
+%                    \IndParamTerm{p_n}{n}}{
+%                    \IndIndexTerm{\WParamTrans{V_{k,1}}}{1}}{
+%                    \dots}{
+%                    \IndIndexTerm{\WParamTrans{V_{k,m}}}{m}}{
+%                    (\app{\ConstructorTrans{c_k}}{\vv{p}}{\vv{a_k}})
+%                    }$
+%\end{itemize}
+%where
+%
+%\begin{table}[h!]
+%\centering
+%\begin{tabular}{r@{\hspace{0.5em}}c@{\hspace{0.5em}}l}
+%$\ParamIndTrans{\cdot}{\IndD}$ & $\termDef$ & $\cdot$ \\
+%$\ParamIndTrans{\typing{a}{A},L}{\IndD}$ & $\termDef$ &
+%$
+%\left \{ \begin{matrix*}[l]
+%a:\TypeTrans{A},\ParamIndTrans{L}{\IndD}, & {\normalfont \propFun[\IndD] \wedge \neg\ \propFun[A]}\\
+%a:\TypeTrans{A},\WTermTrans{a}:\app{\WParamTypeTrans{A}}{a}, \ParamIndTrans{L}{\IndD} & \otherwise
+%\end{matrix*}\right .$
+%\vspace{1em}\\
+%\hline\\
+%$\IndParamTerm*{p}{j}$ & $\termDef$ & 
+%$
+%\left \{ \begin{matrix*}[l]
+%a & {\normalfont \typing{a}{A}\wedge\propFun[\IndD] \wedge \neg\ \propFun[A]}\\
+%\app{a}{\WTermTrans{a}} & \otherwise
+%\end{matrix*} \right .$
+%\end{tabular}
+%\end{table}
+
+\noindent The exceptional translation is extended with the following rules:
+\begin{center}
+$\Trans{\IndD}\termDef\ConstructorTrans{\IndD}$ \hspace{1em}
+$\Trans{c_{1}}\termDef\ConstructorTrans{c_{1}}$ \hspace{1em}
+$\dots$ \hspace{1em}
+$\Trans{c_{k}}\termDef\ConstructorTrans{c_{k}}$
+\end{center}
+\end{Definition}
+
+Now we are able to define how the weakly parametric translation works on inductives.
+
+\begin{Definition}
+\label{def:WInductiveDef}
+Let be $\IndIntro[k][\varContext_\IndD][\varContext_C]$ a valid inductive block
+definition, as given in \defRef{def:InductiveDef}. 
+We define the exceptional translation 
+$\IndIntro[k'][\varContext_{\ConstructorTrans{\IndD}}][\varContext_{\ConstructorTrans{C}}]$
+of the previous block where $k'$ is number of new arguments and:
+%\newcommand{\WIndArgTrans}[2][\Context{}]{\ensuremath{[\![#2]\!]^{#1}_{\WTransSymbol\mathtexttt{Ind}}}}
+\begin{center}
+$\varContext_{\WTermTrans{\IndD}} 
+=
+\{\WTermTrans[i]{\IndD}: \WIndArgTrans[\cdot]{T} \ |\ \typing{\IndD_i}{T} \in \varContext_\IndD\}
+$ \\
+$\varContext_{\WTermTrans{C}} 
+=
+\{\WTermTrans[i]{c}: \WIndArgTrans[\cdot]{T} \ |\ \typing{c_i}{T} \in \varContext_C\}
+$
+\end{center}
+with $\WIndArgTrans{\cdot}$ defined as below.
+
+{\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{l@{$\hspace{0.2em}\termDef$\ \ }l}
+$\WIndArgTrans{\depArrow{x}{A}{B}}$ & 
+        $\left \{\begin{matrix*}[l]
+        \depArrow{x}{\TypeTrans{A}}{\WIndArgTrans[\Context,\typing{x}{A}]{B}} & \weaklypropFun[A,B]\\
+        \depArrow{x}{\TypeTrans{A}}{
+                  \WTermTrans{x}}{\app{\WParamTypeTrans{A}}{\Trans{x}}}{
+                  \WIndArgTrans[\Context,\typing{x}{A}]{B}} & \otherwise
+        \end{matrix*}\right .$ \\
+$\WIndArgTrans{A}$ & $\WParamTypeTrans{A}$
+\end{tabular}
+}
+
+\noindent The weakly parametric exceptional translation is extended with the following rules:
+\begin{center}
+$\Trans{\IndD}\termDef\ConstructorTrans{\IndD}$ \hspace{1em}
+$\Trans{c_{1}}\termDef\ConstructorTrans{c_{1}}$ \hspace{1em}
+$\dots$ \hspace{1em}
+$\Trans{c_{k}}\termDef\ConstructorTrans{c_{k}}$
+\end{center}
+\end{Definition}
+
+\begin{figure}
+\begin{CoqDef}%{\par\bfseries\ttfamily\noindent%
+\\$\IndIntro[2][\typing{\Indeqw}{\depArrow{A}{\type[]}{x}{\TypeTrans{A}}{y}{\TypeTrans{A}}{
+                            \arrow{\app{\Indeqe}{A}{x}{y}}{\Prop}}}][
+              \\\hspace*{1em}
+              \typing{\Consreflw}{\depArrow{A}{\type[]}{x}{\TypeTrans{A}}{y}{\TypeTrans{A}}{
+                              \app{\Indeqw}{A}{x}{x}{(\app{\Consrefle}{A}{x})}}}
+              ]{} $
+\\$\IndIntro[3][\typing{\Indexw}{\multDepArrow{{A:\type[]},{P:\arrow{\TypeTrans{A}}{\prop}},
+                                           {\WTermTrans{P}:\depArrow{H}{\TypeTrans{A}}{
+                                            \arrow{\TypeTrans{\app{P}{H}}}{\Prop}}}}{
+                              \arrow{\app{\Indexe}{A}{P}}{\Prop}}}][
+                \\\hspace*{1em}
+                \typing{\Consintrow}{
+                \multDepArrow{{A:\type[]},{P:\arrow{\TypeTrans{A}}{\prop}},
+                              {\WTermTrans{P}:\depArrow{H}{\TypeTrans{A}}{
+                                               \arrow{\TypeTrans{\app{P}{H}}}{\Prop}}},
+                              {\ensuremath{x}:\ensuremath{A}},
+                              {\ensuremath{H}:\TypeTrans{\app{P}{x}}}}{
+                 \\\hspace*{1.8cm} \arrow{\app{\WTermTrans{P}}{x}{H}}{
+                        \app{\Indexw}{A}{P}{P}{(\app{\Consintroe}{A}{P}{x}{H})}}}
+                 }]{}$
+\\$\IndIntro[0][\typing{\Indnatw}{\arrow{\app{\Indnate}}{\Type}}][
+        \typing{\ConsOw}{\app{\Indnatw}{\ConsOe}}, 
+        \typing{\ConsSw}{\depArrow{n}{\Indnate}{\arrow{\app{\Indnatw}{n}}{\app{\Indnatw}{(\app{\ConsSe}{n})}}}}]$
+%Inductive eq$_\WTransSymbol\ (A:\type[]{})\ (x:\TypeTrans{A}): 
+%\enDepArrow{y}{\TypeTrans{A}}{\arrow{\app{\ConstructorTrans{\text{eq}}}{A}{x}{y}}{\Prop}}$:=\\
+%\hspace*{1mm}|$\WTermTrans{\text{refl}}: \app{\WTermTrans{\text{eq}}}{A}{x}{x}{
+%                                (\app{\ConstructorTrans{\text{refl}}}{A}{x})}$
+
+%\vspace{1ex}
+%Inductive ex$_\WTransSymbol\ (A:\type[]{})\ 
+%(P:\arrow{\TypeTrans{A}}{\prop})\ 
+%(\WTermTrans{P}:
+%      \enDepArrow{H}{\TypeTrans{A}}{\arrow{\TypeTrans{\app{P}{H}}}{\Prop}}):\\
+%\hspace*{2em}\arrow{\app{\ConstructorTrans{\text{ex}}}{A}{P}}{\Prop}$ := \\
+%\hspace*{1mm}|$\WTermTrans{\text{intro}}:\depArrow{x}{A}{
+%                                     H}{\TypeTrans{\app{P}{x}}}{
+%                                     \arrow{\app{\WTermTrans{P}}{x}{H}}{
+%                                            \app{\text{\WTermTrans{ex}}}{
+%                                             A}{
+%                                             P}{
+%                                             \WTermTrans{P}}{
+%                                             (\app{\ConstructorTrans{\text{intro}}}{A}{P}{x}{H})}}}$
+                                             
+%\vspace{1ex}
+%Ind $\WTermTrans{\mathtexttt{nat}}:\arrow{\ConstructorTrans{\mathtexttt{nat}}}{\Type[]{}} := \\ 
+%\hspace*{1mm}|\WTermTrans{\text{O}}: \app{\WTermTrans{\text{nat}}}{\ConstructorTrans{\text{O}}}\\
+%\hspace*{1mm}|\WTermTrans{\text{S}}: \depArrow{n}{
+%                                              \ConstructorTrans{\text{nat}}}{
+%                                              \arrow{\app{\WTermTrans{\text{nat}}}{n}}{
+%                                                     \app{\WTermTrans{\text{nat}}}{
+%                                                          (\app{\ConstructorTrans{\text{S}}}{   
+%                                                               n}})}}$
+\end{CoqDef}%}%
+    \caption{Examples of Weakly Parametric Translation of Inductive Types}
+    \label{fig:IndWTrans}
+\end{figure}
+
+This translation cannot be applied over all inductive block definitions. This is because the number of parameters 
+of the translation may vary if, for example, when defining two mutual inductive types, one is a proposition 
+and the other is a type. Depending on the type of the arguments it is possible that the proposition type receive
+less arguments, so the calculus rejects the definition because the parameters must be the same for 
+all inductives.
+In \figRef{fig:IndWTrans}, we see how the weakly translation works over inductive types.
+
+\begin{Theorem}
+For any inductive \IndD{} not using nested inductive types, the \defRef{def:WInductiveDef} is well-typed 
+and preserves the positivity criterion.
+\end{Theorem}
+
+\begin{Proof}
+The well-typed property is a consequence of \theoRef{theorem:typingSoundness}. The conservation of the
+positivity criterion is due to the fact that the translation preserves the structure of the constructor.
+\end{Proof}
+
+\begin{Corollary}
+The weakly parametric translation remains sound when adding the inductives and their constructors.
+\end{Corollary}
+
+\newcommand{\MatchTerm}{\ensuremath{Q}}
+\begin{Definition}
+\label{def:PM}
+Assume an inductive \IndD{} as given in \defRef{def:InductiveDef}. Let \MatchTerm{} be the well-typed 
+pattern-matching term defined as
+\begin{adjustwidth}{1.5em}{0cm} \normalfont \sffamily
+match \M{} return $\lambda \app{(\typing{i_1}{I_1})}{\dots}{(\typing{i_m}{I_m})}{
+                    (x:\app{\IndD}{X_1}{\dots}{X_n}{i_1}{\dots}{i_m})}.R$ with\\
+$|\ \app{c_1}{a_{1,1}}{\dots}{a_{1,l_1}} \Rightarrow N_1$\\
+$\dots$\\
+$|\ \app{c_k}{a_{k,1}}{\dots}{a_{k,l_k}} \Rightarrow N_k$\\
+end
+\end{adjustwidth}
+where
+\begin{center}
+{
+\def\intercolumn{2.5em}
+\def\interline{5pt}
+$
+\ctyping{\vv{X}}{\vv{P}}
+\hspace{\intercolumn}
+\ctyping{\vv{Y}}{\subst{\vv{I}}{\vv{p}}{\vv{X}}}
+\hspace{\intercolumn}
+\ctyping{M}{\app{\IndD}{X_1}{\dots}{X_n}{Y_1}{\dots}{Y_m}}
+$
+\vspace{\interline{}}\\
+$
+\ctyping[\vv{i}:\subst{\vv{I}}{\vv{p}}{\vv{X}},x:\app{\IndD}{\vv{X}}{\vv{i}}]{R}{\Type[]{}}
+\hspace{\intercolumn}
+\ctyping{Q}{\subst{R}{\vv{i}}{\vv{Y}}{x}{M}}
+$
+\vspace{\interline{}}\\
+$
+\ctyping[\vv{a_1}:\vv{A_1}]{N_1}{\subst{R}{
+                                                    \vv{i}}{\subst{\vv{V_1}}{p}{X}}{
+                                                    x}{\app{c_1}{\vv{X}}{\vv{a_1}}}}
+$\\
+$\dots$
+\vspace{\interline{}}\\
+$
+\ctyping[\vv{a_k}:\vv{A_k}]{N_k}{\subst{R}{
+                                                    \vv{i}}{\subst{\vv{V_k}}{p}{X}}{
+                                                    x}{\app{c_k}{\vv{X}}{\vv{a_k}}}}
+$
+}
+\end{center}
+\end{Definition}
+
+The exceptional translation has a major issue. Singleton elimination must not be considered in order to 
+translate pattern-matching terms with impredicativity. Applying the exceptional
+translation over an inductive proposition with one constructor yields an inductive proposition with two 
+constructors (the default error), which breaks singleton elimination. If we do not consider singleton elimination,
+We to proceed with the following.
+\newcommand{\WIndexIndTrans}[2][\IndD]{\TypeTrans{#2}_{\WTransSymbol\mathtexttt{Index}}^{#1}}
+\begin{Definition}
+\label{def:WParamTransPM}
+Assume \MatchTerm{} is the pattern-matching defined in \defRef{def:PM}. We define \WParamTrans{\MatchTerm{}}
+as:
+\begin{adjustwidth}{1.5em}{0cm} \normalfont \sffamily
+match \WParamTrans{\M{}} return $\lambda\app{(\WIndexIndTrans{\vv{i}:\vv{I}})}{
+                    (x: \app{\Trans{\app{\IndD}{X_1}{\dots}{X_n}}}{\vv{i}_{\mathtexttt{non-param}}})}{$\\
+\hspace*{4cm}  $(\WTermTrans{x}: \app{\WParamTrans{\app{\IndD}{X_1}{\dots}{X_n}}}{\vv{i}_{\mathtexttt{all}}})}.
+                    \app{\WParamTypeTrans[\Context]{R}}{\Trans{\MatchTerm_x}}$ with\\
+$|\ \app{\WTermTrans[1]{c}}{\vv{a}} \Rightarrow \WParamTrans[\Context,\Delta_1]{N_1}$\\
+$\dots$\\
+$|\ \app{\WTermTrans[k]{c}}{\vv{a}} \Rightarrow \WParamTrans[\Context,\Delta_k]{N_k}$\\
+end
+\end{adjustwidth}
+%where $\MatchTerm_x$ is the following pattern-matching:
+%\begin{center}
+%{
+%\begin{adjustwidth}{1.5em}{0cm} \normalfont \sffamily
+%match $x$ return $\lambda \app{(i_1:I_1)}{\dots}{(i_m:I_m)}{
+%                    (x:\app{\IndD}{X_1}{\dots}{X_n}{i_1}{\dots}{i_m})}.R$ with\\
+%$|\ \app{c_1}{a_{1,1}}{\dots}{a_{1,l_1}} \Rightarrow N_1$\\
+%$\dots$\\
+%$|\ \app{c_k}{a_{k,1}}{\dots}{a_{k,l_k}} \Rightarrow N_k$\\
+%end
+%\end{adjustwidth}
+%}
+%\end{center}
+\end{Definition}
+
+\begin{Theorem}[Pattern-matching soundness]
+Let \MatchTerm{} be the term defined as \defRef{def:PM}. With \defRef{def:WParamTransPM} and 
+$b\termEq\propFun[\subst{R}{\vv{i}}{\vv{Y}}{x}{M}]$ we have:
+\begin{center}  
+    $\ctyping[][\WContextTrans{\Context}]{\WParamTrans{\MatchTerm}}{
+                        \app{\WParamTypeTrans{\subst{R}{\vv{i}}{\vv{Y}}{x}{M}}}{\ParamTrans{\MatchTerm}}}$
+\end{center}
+\end{Theorem}
+
+\begin{Proof}
+This result is a consequence of \theoRef{theorem:typingSoundness}. The return type of the match corresponds
+weakly parametrically with each constructor of the inductive type, resulting in a straightforward
+application of the theorem.
+\end{Proof}
+
+As a immediate consequence of the previous theorem we have:
+
+\begin{Theorem}
+The translation preserves $\iota$-rules
+\end{Theorem}
+\begin{Proof}
+The structure of the translation is preseved by the translation.
+\end{Proof}
+
+\vspace{1em}
+\noindent With the previous definitions it is possible to translate equality and existential as shown in
+\figRef{fig:IndWTrans}. Now the proposition:
+\begin{center}
+$\exists (n:\mathtexttt{nat}),\ (\app{\raiseFun}{\ttUnit}) = n$
+\end{center}
+admits a weakly parametric translation with the following proof:
+
+\noindent
+$(\app{\WTermTrans{\mathtexttt{intro}}}{
+       (\app{\mathtexttt{TypeVal}}{\Indnate}{\ExceptionTrans{\Indnat}})}{
+\\\hspace*{2em} (\abs{n}{\Indnate}{
+                    \app{\mathtexttt{TypeVal}}{
+\\\hspace*{6em}     (\app{\Indeqe}{(\app{\TypeVal}{\Indnate}{\ExceptionTrans{\Indnat}})}{
+                       (\app{\raiseFun}{\ttUnit})}{n})}{
+\\\hspace*{6em}     (\app{\ExceptionTrans{\Indeq}}{(\app{\TypeVal}{\Indnate}{\ExceptionTrans{\Indnat}})}{
+                       (\app{\raiseFun}{\ttUnit})}{n})}{
+                 }}}{
+\\\hspace*{2em} (\abs{n}{\Indnate}{
+                    \app{\Indeqw}{(\app{\mathtexttt{Typeval}}{\Indnate}{\ExceptionTrans{\Indnat}})}{
+                        (\app{\raiseFun}{\ttUnit})}{n})
+                    }}{
+\\\hspace*{2em} (\app{\raiseFun}{\ttUnit})}{
+\\\hspace*{2em} (\app{\Consrefle}{(\app{\mathtexttt{TypeVal}}{\Indnate}{\ExceptionTrans{\Indnat}})}{
+                      (\app{\raiseFun}}{\ttUnit}))}{
+\\\hspace*{2em} (\app{\Consreflw}{(\app{\mathtexttt{TypeVal}}{\Indnate}{\ExceptionTrans{\Indnat}})}{
+                      (\app{\raiseFun}}{\ttUnit}))
+                      }$
+                      
+Now we have to show that $\WParamTrans{(\app{\raiseFun}{\ttUnit})}$ does not exist. This is true because 
+is not possible to define a parametric translation of $\raiseFun$.
+
+\section{Parametric Modality}

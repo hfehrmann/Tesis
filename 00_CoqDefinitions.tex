@@ -1,0 +1,112 @@
+\newcommand{\CoqDefinition}[1]{\text{\textbf{\texttt{#1}}}}
+\newenvironment{CoqEnv}{\normalfont\bfseries\tt}{}
+
+
+% nat inductive definition
+\newcommand{\Indnat}{\CoqDefinition{nat}}
+\newcommand{\Indnate}{\ConstructorTrans{\Indnat}}
+\newcommand{\Indnatw}{\WTermTrans{\Indnat}}
+
+\newcommand{\ConsO}{\CoqDefinition{O}}
+\newcommand{\ConsOe}{\ConstructorTrans{\ConsO}}
+\newcommand{\ConsOw}{\WTermTrans{\ConsO}}
+
+\newcommand{\ConsS}{\CoqDefinition{S}}
+\newcommand{\ConsSe}{\ConstructorTrans{\ConsS}}
+\newcommand{\ConsSw}{\WTermTrans{\ConsS}}
+
+% bool inductive definition
+\newcommand{\Indbool}{\CoqDefinition{bool}}
+\newcommand{\Indboole}{\ConstructorTrans{\Indbool}}
+\newcommand{\Indboolw}{\WTermTrans{\Indbool}}
+
+\newcommand{\Construe}{\CoqDefinition{true}}
+\newcommand{\Construee}{\ConstructorTrans{\Construe}}
+\newcommand{\Construew}{\WTermTrans{\Construe}}
+
+\newcommand{\Consfalse}{\CoqDefinition{false}}
+\newcommand{\Consfalsee}{\ConstructorTrans{\Consfalse}}
+\newcommand{\Consfalsew}{\WTermTrans{\Consfalse}}
+
+% eq inductive definition
+\newcommand{\Indeq}{\CoqDefinition{eq}}
+\newcommand{\Indeqe}{\ConstructorTrans{\Indeq}}
+\newcommand{\Indeqw}{\WTermTrans{\Indeq}}
+
+\newcommand{\Consrefl}{\CoqDefinition{refl}}
+\newcommand{\Consrefle}{\ConstructorTrans{\Consrefl}}
+\newcommand{\Consreflw}{\WTermTrans{\Consrefl}}
+
+% ex inductive definition
+\newcommand{\Index}{\CoqDefinition{ex}}
+\newcommand{\Indexe}{\ConstructorTrans{\Index}}
+\newcommand{\Indexw}{\WTermTrans{\Index}}
+
+\newcommand{\Consintro}{\CoqDefinition{ex}}
+\newcommand{\Consintroe}{\ConstructorTrans{\Consintro}}
+\newcommand{\Consintrow}{\WTermTrans{\Consintro}}
+
+% list inductive definition
+\newcommand{\Indlist}{\CoqDefinition{list}}
+\newcommand{\Indliste}{\ConstructorTrans{\Indlist}}
+\newcommand{\Indlistw}{\WTermTrans{list}}
+
+\newcommand{\Consnil}{\CoqDefinition{nil}}
+\newcommand{\Consnile}{\ConstructorTrans{\Consnil}}
+\newcommand{\Consnilw}{\WTermTrans{\Consnil}}
+
+\newcommand{\Conscons}{\CoqDefinition{cons}}
+\newcommand{\Consconse}{\ConstructorTrans{\Conscons}}
+\newcommand{\Consconsw}{\WTermTrans{\Consconsl}}
+
+% list inductive definition
+\newcommand{\Indvec}{\CoqDefinition{vec}}
+\newcommand{\Indvece}{\ConstructorTrans{\Indlist}}
+\newcommand{\Indvecw}{\WTermTrans{list}}
+
+\newcommand{\Consvnil}{\CoqDefinition{vnil}}
+\newcommand{\Consvnile}{\ConstructorTrans{\Consvnil}}
+\newcommand{\Consvnilw}{\WTermTrans{\Consvnil}}
+
+\newcommand{\Consvcons}{\CoqDefinition{vcons}}
+\newcommand{\Consvconse}{\ConstructorTrans{\Consvcons}}
+\newcommand{\Consvconsw}{\WTermTrans{\Consvconsl}}
+
+% odd - even example
+\newcommand{\Indeven}{\CoqDefinition{even}}
+\newcommand{\Indodd}{\CoqDefinition{odd}}
+
+% unit inductive definition
+\newcommand{\Indunit}{\CoqDefinition{unit}}
+\newcommand{\Constt}{\CoqDefinition{tt}}
+
+% bad inductive definition
+\newcommand{\IndbadOne}{\CoqDefinition{bad\_ind1}}
+\newcommand{\IndbadTwo}{\CoqDefinition{bad\_ind2}}
+\newcommand{\IndbadThree}{\CoqDefinition{bad\_ind3}}
+
+% Vernacular commands
+\definecolor{CoqGreen}{rgb}{0.41, 0.71, 0.23}
+\definecolor{CoqBlue}{rgb}{0.30, 0.25, 0.76}
+\lstdefinelanguage{Coq}{
+    basicstyle=\ttfamily,
+    morekeywords={[1]Type, Set, Prop},
+    keywordstyle=[1]\color{CoqBlue},
+    morekeywords={[2]Inductive, Definition, Lemma, Theorem},
+    keywordstyle=[2]\color{red},
+    morekeywords={[3]forall,fun, match,as,return,with,end},
+    keywordstyle=[3]\color{CoqGreen},
+    sensitive=true,
+    morecomment=[s]{(*}{*)},
+    morestring=[b]",
+    columns=fullflexible
+}
+
+\newcommand{\lstCoqInline}{\lstinline[language=Coq,mathescape=true]}
+\newcommand{\VernacDefinition}{\lstCoqInline!Definition!}
+\newcommand{\VernacInductive}{\lstCoqInline!Inductive!}
+\newcommand{\VernacProp}{\lstCoqInline!Prop!}
+\NewDocumentCommand{\VernacType}{o}{%
+    \lstCoqInline!Type!\IfValueT{#1}{$_{#1}$}%
+}
+

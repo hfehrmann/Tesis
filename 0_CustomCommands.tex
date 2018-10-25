@@ -1,0 +1,349 @@
+
+\usepackage{enumitem}
+\renewcommand{\labelitemi}{--}
+\usepackage{xparse} % For defining good command
+\usepackage{etoolbox} % List processing, at least for now
+\usepackage{mathtools}
+\usepackage{relsize}
+\usepackage{parskip}
+\setlength{\parindent}{1em}
+\usepackage{mathpartir}
+\usepackage{changepage}
+
+\usepackage{multirow} % allow the multi row tabular cell 
+\usepackage{boldline} % bold for cline in multirow
+\usepackage{colortbl} % allow the color tabular cell
+\usepackage{tikz} % used for drawing (lambda cube)
+\usepackage{calc} % used to add number passed to macros
+
+
+
+\usepackage{listings} % for language especification. For Coq see 00_CoqDefinitions
+
+\usepackage{lmodern} % for bold tinputntter
+\usepackage{marginnote}
+
+\usepackage{esvect}
+
+\newcommand\ie{i.e.}
+\newcommand\betaRed{$\beta$-reduction}
+
+\newcommand{\sanstexttt}[1]{\textsf{#1}}
+% Variables 
+\newcommand{\True}{\ensuremath{\top}}
+\newcommand{\False}{\ensuremath{\perp}}
+\newcommand{\x}{\ensuremath{x}}
+\newcommand{\y}{\ensuremath{y}}
+\newcommand{\N}{\ensuremath{N}}
+\newcommand{\M}{\ensuremath{M}}
+\newcommand{\A}{\ensuremath{A}}
+\newcommand{\B}{\ensuremath{B}}
+\newcommand{\Context}{\ensuremath{\Gamma}}
+\newcommand{\varContext}{\ensuremath{\Delta}}
+\newcommand{\GContext}{\ensuremath{E}}
+\newcommand{\EContext}{\ensuremath{\cdot}}
+\NewDocumentCommand{\Type}{O{i}}{\ensuremath{\square_{#1}}}
+\newcommand{\Prop}{\ensuremath{\ast}}
+\newcommand{\type}[1][i]{\ensuremath{\textbf{\texttt{{type}}}_{#1}}}
+\newcommand{\prop}{\ensuremath{\textbf{\texttt{{prop}}}}}
+\newcommand{\IndD}{\ensuremath{\mathcal{I}}}
+
+\newcommand{\mathtexttt}[1]{\texttt{\textbf{#1}}}
+\newcommand{\TypeVal}{\mathtexttt{TypeVal}}
+\newcommand{\TypeErr}{\mathtexttt{TypeErr}}
+\newcommand{\PropVal}{\mathtexttt{PropVal}}
+\newcommand{\PropErr}{\mathtexttt{PropErr}}
+\newcommand{\Err}{\mathtexttt{Err}}
+
+\newcommand{\Theory}{\ensuremath{\mathcal{T}}}
+\newcommand{\ETheory}{\ensuremath{\Theory_{\TransSymbol}}}
+\newcommand{\PTheory}{\ensuremath{\Theory_{\TransSymbol}^p}}
+\newcommand{\WPTheory}{\ensuremath{\Theory_{\WTransSymbol}}}
+% ###################################################################################################
+
+% Context functions
+\newcommand{\domContext}[1]{\ensuremath{\textsf{dom}(#1)}}
+% ###################################################################################################
+
+% Constants
+\newcommand{\trueTerm}{\sanstexttt{true}}
+\newcommand{\falseTerm}{\sanstexttt{false}}
+% ###################################################################################################
+
+%Set
+\newcommand{\Nat}{\ensuremath{\mathbb{N}}}
+\newcommand{\Bool}{\ensuremath{\mathbb{B}}}
+
+\newcommand{\Sort}{\ensuremath{\mathcal{S}}}
+% ###################################################################################################
+
+% Types
+\newcommand{\tInt}{\sanstexttt{Int}}
+\newcommand{\tBool}{\sanstexttt{Bool}}
+% ###################################################################################################
+
+% --- Translation
+\NewDocumentCommand{\WParamTransProp}{O{A}}{%
+    \abs{#1}{\TypeTrans{\Prop}}{\arrow{\TypeTrans{#1}}{\Prop}}%
+}
+\NewDocumentCommand{\WParamTransPropAbs}{O{x}O{A}O{M}}{%
+    \abs{#1}{\TypeTrans{#2}}{\WParamTrans[\Context,\smalltyping{#1}{#2}]{#3}} %
+}
+\NewDocumentCommand{\WParamTransNPropAbs}{O{x}O{A}O{M}}{%
+    \abs{#1}{\TypeTrans{#2}}{\WTermTrans{#1}}{\app{\WParamTypeTrans{#2}}{#1}}{%
+        \WParamTrans[\Context,\smalltyping{#1}{#2}]{#3}}%
+}
+% ###################################################################################################
+
+
+% Function type related
+\NewDocumentCommand{\arrow}{gggg}{%
+  \IfNoValueTF{#1}{\ensuremath{\rightarrow}}{%
+  \IfNoValueTF{#2}{\ensuremath{#1\rightarrow}}{%
+  \IfNoValueTF{#3}{\ensuremath{#1\rightarrow #2}}{%
+  \IfNoValueTF{#4}{\ensuremath{#1\rightarrow #2 \rightarrow #3}}{%
+                   \ensuremath{#1 \rightarrow #2 \rightarrow #3 \rightarrow #4}}}}}%
+}
+
+\NewDocumentCommand{\alotDepArrow}{O{i}mmm}{%
+                    \ensuremath{\Pi(\typing{#2_1}{#3_1})\dots(\typing{#2_{#1}}{#3_{#1}}).#4}}
+
+\NewDocumentCommand{\depArrow}{mmmgggggg}{%
+  \IfNoValueTF{#4}{\ensuremath{\Pi \typing{#1}{#2}.\,#3}}{%
+  \IfNoValueTF{#6}{\ensuremath{\Pi (\typing{#1}{#2})(\typing{#3}{#4}).\,#5}}{%
+                   \ensuremath{\Pi (\typing{#1}{#2})(\typing{#3}{#4})(\typing{#5}{#6}).\,#7}}}%
+}
+
+\NewDocumentCommand{\vvDepArrow}{mmmgggggg}{%
+  \IfNoValueTF{#4}{\ensuremath{\Pi (\typing{\vv{#1}}{\vv{#2}}).\,#3}}{%
+  \IfNoValueTF{#6}{\ensuremath{\Pi (\typing{\vv{#1}}{\vv{#2}})(\typing{\vv{#3}}{\vv{#4}}).\,#5}}{%
+        \ensuremath{\Pi (\typing{\vv{#1}}{\vv{#2}})(\typing{\vv{#3}}{\vv{#4}})(\typing{\vv{#5}}{\vv{#6}}).\,#7}}}%
+}
+
+\makeatletter
+\NewDocumentCommand{\@splitedTyping}{>{\SplitList {:}}m}{\mbox{\typing#1}}
+%this function transform \vDA{{a:1},{b:10}}{body} or \vDA{a:1,b:10}{body} into \Pi(a:1)(b:10).body
+\newcommand{\multDepArrow}[2]{% 
+    \renewcommand*{\do}[1]{(\@splitedTyping{##1}) }%
+    \ensuremath{\Pi\docsvlist{#1}.#2}%
+}
+\makeatother
+
+\NewDocumentCommand{\enDepArrow}{mmm}{%
+  \ensuremath{\Pi (\typing{#1}{#2}).\,#3}%
+}
+
+\NewDocumentCommand{\vardepArrow}{O{x}mO{y}mg}{%
+\IfNoValueTF{#5}{\depArrow{#1}{#2}{#4}}{\depArrow{#1}{#2}{#3}{#4}{#5}}%
+}
+% ###################################################################################################
+
+% Abstraction related (typed abstraction)
+\NewDocumentCommand{\abs}{mmggggg}{%
+  \IfNoValueTF{#3}{\ensuremath{\lambda #1.\:#2}}{%
+  \IfNoValueTF{#4}{\ensuremath{\lambda \typing{#1}{#2}.\:#3}}{%
+  \IfNoValueTF{#6}{\ensuremath{\lambda (\typing{#1}{#2})(\typing{#3}{#4}).\:#5}}{%
+                   \ensuremath{\lambda (\typing{#1}{#2})(\typing{#3}{#4})(\typing{#5}{#6}).\:#7}}}}%
+}
+
+\newcommand{\varabs}[3]{\ensuremath{\lambda (\typing{#1}{#2}).#3}}
+
+\NewDocumentCommand{\app}{mmggggggg}{%
+    \IfNoValueTF{#3}{\ensuremath{#1\: #2}}{%
+    \IfNoValueTF{#4}{\ensuremath{#1\: #2\: #3}}{%
+    \IfNoValueTF{#5}{\ensuremath{#1\: #2\: #3\: #4}}{%
+    \IfNoValueTF{#6}{\ensuremath{#1\: #2\: #3\: #4\: #5}}{%
+    \IfNoValueTF{#7}{\ensuremath{#1\: #2\: #3\: #4\: #5\: #6}}{%
+    \IfNoValueTF{#8}{\ensuremath{#1\: #2\: #3\: #4\: #5\: #6\: #7}}{%
+    \IfNoValueTF{#9}{\ensuremath{#1\: #2\: #3\: #4\: #5\: #6\: #7\: #8}}{%
+                     \ensuremath{#1\: #2\: #3\: #4\: #5\: #6\: #7\: #8\: #9}
+    }}}}}}}%
+}
+% ###################################################################################################
+
+% Inductive related
+\NewDocumentCommand{\IndIntro}{O{n}O{\ensuremath{\triangle}}O{\ensuremath{\triangle}}}{%
+ \ensuremath{%
+  \text{\normalfont\textsf{\textbf{Ind}}}_{#1} \{ #2 := #3 \}%
+}}
+\NewDocumentCommand{\IndElim}{mmm}{\ensuremath{\textsf{case}(#1,#2,#3})}
+% ###################################################################################################
+
+
+% Reductions strategies
+\newcommand{\reduction}[1]{\ensuremath{\triangleright_{#1}}}
+\newcommand{\reductionStrat}[3][]{\ensuremath{#2\ \reduction{#1}#3}}
+\newcommand{\reductionBeta}[2]{\reductionStrat[\beta]{#1}{#2}}
+\newcommand{\reductionIota}[2]{\reductionStrat[\iota]{#1}{#2}}
+\newcommand{\reductionDelta}[2]{\reductionStrat[\delta]{#1}{#2}}
+\newcommand{\expansionEta}[2]{\reductionStrat[\eta]{#1}{#2}}
+\newcommand{\convertible}[2]{\ensuremath{#1\equiv#2}}
+% ###################################################################################################
+
+% Term
+\NewDocumentCommand{\ifterm}{mmm}{%
+    \ensuremath{\sanstexttt{if}\ #1\ \sanstexttt{then}\ #2\ \sanstexttt{else}\ #3}%
+}
+% ###################################################################################################
+
+%Typing
+\newcommand{\typing}[2]{#1:#2}
+\newcommand{\vvTyping}[2]{\vv{#1}:\vv{#2}}
+\newcommand{\smalltyping}[2]{#1:#2}
+\newcommand{\definitionWtype}[3]{\typing{#1\termDef#2}{#3}}
+\NewDocumentCommand{\ctyping}{oO{\Context}D(){}mm}{%
+    \ensuremath{
+    \IfNoValueTF{#1}{#2\vdash_{#3}\!\typing{#4}{#5}}{%
+    \IfNoValueTF{#2}{#2,#1\vdash_{#3}\!\typing{#4}{#5}}{%
+                \if\relax\detokenize{#2}\relax%
+                    \if\relax\detokenize{#1}\relax\cdot\vdash_{#3}\!\typing{#4}{#5}\else#1\vdash_{#3}\!\typing{#4}{#5}\fi%
+                \else%
+                    \if\relax\detokenize{#1}\relax#2\vdash_{#3}\!\typing{#4}{#5}\else#2,#1\vdash_{#3}\!\typing{#4}{#5}\fi%
+                \fi%
+    }}}%
+}
+\NewDocumentCommand{\cvvtyping}{O{\Context}mm}{%
+    \ensuremath{#1\vdash\!\vvTyping{#2}{#3}}%
+}
+\NewDocumentCommand{\wfctyping}{O{\GContext}O{\Context}omm}{%
+    \ensuremath{%
+        \IfNoValueTF{#3}{#1[#2]\vdash\!\typing{#4}{#5}%
+        }{#1[#2,#3]\vdash\!\typing{#4}{#5}}%
+    }%
+}
+\NewDocumentCommand{\wfContext}{m}{%
+    \ensuremath{%
+        \mathcal{WF}(#1)%
+    }%
+}
+% ###################################################################################################
+
+\NewDocumentCommand{\subst}{mmmgggg}{%
+    \IfNoValueTF{#4}{#1\{#2\termDef#3\}}{%
+    \IfNoValueTF{#6}{#1\{#2\termDef#3,\ #4\termDef#5\}}{%
+                     #1\{#2\termDef#3,\ #4\termDef#5,\ #6\termDef#7\}
+    }}%
+}
+
+% Deprecated
+\NewDocumentCommand{\wf}{O{\Context}}{%
+    \ensuremath{\vdash#1}%
+    \rule{\textwidth}{10pt}
+}
+
+\newcommand{\otherwise}{\ensuremath{\sim}}
+
+% Translation Auxiliary functions
+\NewDocumentCommand{\propFun}{o}{%
+  {\normalfont\textsf{ArToPr}}\IfNoValueTF{#1}{}{(#1)}%
+}
+\NewDocumentCommand{\weaklypropFun}{o}{%
+  {\normalfont\textsf{WeaklyType}}\IfNoValueTF{#1}{}{(#1)}%
+}
+% ###################################################################################################
+
+% Translation
+\newcommand{\TransSymbol}{\ensuremath{{\varepsilon}}}
+\newcommand{\IndTransSymbol}{\ensuremath{{\bullet}}}
+\newcommand{\WTransSymbol}{\ensuremath{{\omega}}}
+\newcommand{\Trans}[1]{\ensuremath{[#1]}}
+\newcommand{\TypeTrans}[1]{\ensuremath{[\![#1]\!]}}
+\newcommand{\ParamTrans}[1]{\ensuremath{{[#1]}_\TransSymbol}}
+\newcommand{\ParamTypeTrans}[1]{\ensuremath{{[\![#1]\!]}_\TransSymbol}}
+\NewDocumentCommand{\WParamTrans}{O{\Context}m}{\ensuremath{{[#2]}_\WTransSymbol^{#1}}}
+\NewDocumentCommand{\WParamTypeTrans}{O{\Context}m}{\ensuremath{{[\![#2]\!]}_\WTransSymbol^{#1}}}
+\NewDocumentCommand{\WContextTransDelete}{O{b}m}{\ensuremath{{[\![#2]\!]}_\WTransSymbol^{#1}}}
+\NewDocumentCommand{\WTermTrans}{O{}m}{\ensuremath{{#2}_{{#1}\WTransSymbol}}}
+\NewDocumentCommand{\WIndArgTrans}{O{\Context}m}{\ensuremath{[\![#2]\!]^{#1}_{\WTransSymbol\mathtexttt{Ind}}}}
+\newcommand{\ConstructorTrans}[1]{\ensuremath{#1^{\bullet}}}
+\newcommand{\ExceptionTrans}[1]{\ensuremath{#1_{\phi}}}
+\newcommand{\typeVec}[2]{\ensuremath{\vv{#1}:\vv{#2}}} 
+\newcommand{\El}{\ensuremath{\CoqDefinition{El}}}
+% ###################################################################################################
+
+% Definitions and forms
+\newcommand{\termDef}{:=}
+\newcommand{\termEq}{=}
+\newcommand{\termEquiv}{\ensuremath{\equiv}}
+% ###################################################################################################
+
+%  Reference and environs
+\newcounter{globThms}
+\newcommand{\lemmaRef}[1]{Lemma \ref{#1}}
+\newcommand{\theoRef}[1]{Theorem \ref{#1}}
+\newcommand{\figRef}[1]{Figure \ref{#1}}
+\newcommand{\sectRef}[1]{Section \ref{#1}}
+\NewDocumentEnvironment{Lemma}{o}{%
+    \refstepcounter{globThms}%
+    \hfill \break \noindent \textbf{Lemma \theglobThms{}\IfNoValueTF{#1}{}{ (#1)}.}\itshape%
+}{%
+    \par%
+}
+
+\NewDocumentEnvironment{Theorem}{o}{%
+    \refstepcounter{globThms}%
+    \par \noindent \textbf{Theorem \theglobThms{}\IfNoValueTF{#1}{}{ (#1)}.}\itshape%
+}{%
+    \par%
+}
+
+\NewDocumentEnvironment{Corollary}{o}{%
+    \refstepcounter{globThms}%
+    \par \noindent \textbf{Corollary \theglobThms{}\IfNoValueTF{#1}{}{ (#1)}.}\itshape%
+}{%
+    \par%
+}
+
+\NewDocumentEnvironment{Proof}{}{%
+    \par \noindent \textit{Proof}.%
+}{%
+    \hspace*{\fill} $\square$
+}
+
+\newenvironment{WarningProof}{%
+    \begin{mdframed}[linecolor=red]
+    \par \noindent \textit{Proof}.%
+}{%
+    \hspace*{\fill} $\square$
+    \end{mdframed}
+}
+
+\newcounter{globDefs}
+\newcommand{\defRef}[1]{Definition \ref{#1}}
+\NewDocumentEnvironment{Definition}{o}{%
+    \refstepcounter{globDefs}%
+    \par \noindent \textbf{Definition \theglobDefs{}\IfNoValueTF{#1}{}{ (#1)}.}\itshape%
+}{\par}
+
+\NewDocumentEnvironment{ProofCase}{m}{%
+    \par\noindent\textbf{Case {#1}: \\\noindent}%
+}{}
+
+\usepackage{mdframed}
+\newenvironment{WarningProofCase}[1]{%
+    \begin{mdframed}[linecolor=red]
+    \par\noindent\textbf{Case {#1}: \\\noindent}%
+}{\end{mdframed}}
+
+\newenvironment{SubProofCase}[1]{%
+    \par \begin{adjustwidth}{1.5em}{0cm}
+    \noindent\textbf{Subcase {#1}}: \\\noindent%
+}{\end{adjustwidth}}
+
+\newenvironment{WarningSubProofCase}[1]{%
+    \begin{mdframed}[linecolor=red]
+    \par \begin{adjustwidth}{1.5em}{0cm}
+    \noindent\textbf{Subcase {#1}}: \\\noindent%
+}{\end{adjustwidth}\end{mdframed}}
+
+\newenvironment{CoqDef}{\par\bfseries\ttfamily\noindent}{}
+
+\newcommand{\CIC}{\text{CIC}}
+\newcommand{\CCw}{\ensuremath{\text{\normalfont CC}_\omega}}
+\newcommand{\CC}{\text{\normalfont CoC}}
+% ###################################################################################################
+
+
+
+% change item 1 dash "-" for it a tiny bullet
+\renewcommand\labelitemi{$\vcenter{\hbox{\tiny$\bullet$}}$}

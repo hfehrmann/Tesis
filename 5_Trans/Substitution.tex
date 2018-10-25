@@ -1,0 +1,137 @@
+\begin{Lemma}[Substitution]
+\label{lemma:wtrans_substitution}
+Given a context \Context{} and terms $M$ and $N$, we have:
+\begin{center}
+    $\WTrans{\subst{M}{x}{N}} \equiv \subst{\WTrans{M}}{x}{\WTrans{N}}$
+\end{center}
+\end{Lemma}
+
+\begin{Proof}
+By induction on $M$ over a generalized context
+\begin{ProofCase}{$M \termDef x, M \termDef y$}
+These cases are trivial
+\end{ProofCase}
+
+\begin{ProofCase}{$M \termDef \Type, M \termDef \Prop$}
+These cases are also trivial because $x$ is not involved in the translated term
+\end{ProofCase}
+
+\begin{ProofCase}{$M \termDef \app{M_1}{M_2}$}
+We have $\WTrans{\subst{(\app{M_1}{M_2})}{x}{N}}$. We get by unfold the definition of substitution and 
+the translation
+\begin{center}
+$\WTrans{\subst{(\app{M_1}{M_2})}{x}{N}}$ 
+\\ $\equiv$ \\
+$\WTrans{
+    \app{(\subst{M_1}{x}{N})}{(\subst{M_2}{x}{N})}
+}$
+\\ $\equiv$ \\
+$\app{
+    \WTrans{\subst{M_1}{x}{N}}
+}{
+    \WTrans{\subst{M_2}{x}{N}}
+}
+$
+\end{center}
+It is possible to apply the induction hypothesis over $M_1$ and $M_2$
+\begin{center}
+$\app{
+    (\subst{\WTrans{M_1}}{x}{\WTrans{N}})
+}{
+    (\subst{\WTrans{M_2}}{x}{\WTrans{N}})
+}$
+\end{center}
+and by folding the definition of substitution and the translation
+\begin{center}
+$\app{
+    (\subst{\WTrans{M_1}}{x}{\WTrans{N}})
+}{
+    (\subst{\WTrans{M_2}}{x}{\WTrans{N}})
+}$
+\\ $\equiv$ \\
+$\subst{(\app{\WTrans{M_1}}{\WTrans{M_2}})}{x}{\WTrans{N}}$
+\\ $\equiv$ \\
+$\subst{\WTrans{\app{M_1}{M_2}}}{x}{\WTrans{N}}$
+\end{center}
+which is the required result.
+\end{ProofCase}
+
+\begin{ProofCase}{$M \termDef \abs{x}{A}{M_1}$}
+Note that in this case the binder is the same being substituted. By unfolding the definition of
+substitution and the translation, we get
+\begin{center}
+$\WTrans{
+    \abs{x}{\subst{A}{x}{N}}{M_1}
+}$
+\\ $\equiv$ \\
+$\abs{x}{\WTypeTrans{\subst{A}{x}{N}}}{\WTrans[\typing{x}{A}]{M_1}}$
+\end{center}
+It is necessary to do a case analysis over $\ctyping{\subst{A}{x}{N}}{s}$, with $s$ a sort,
+to unfold $\WTypeTrans{\subst{A}{x}{N}}$ which could give either:
+\begin{itemize}
+\item \WTrans{\subst{A}{x}{N}}
+\item \app{\El}{\WTrans{\subst{A}{x}{N}}}
+\end{itemize}
+In both cases, it follows directly that 
+$\WTypeTrans{\subst{A}{x}{N}} \equiv \subst{\WTypeTrans{A}}{x}{\WTrans{N}}$
+by using the induction hypothesis and unfolding/folding. Then, the conclusion can be established.
+\end{ProofCase}
+
+\begin{ProofCase}{$M \termDef \abs{y}{A}{M_1}$}
+The binder in this case is distinct from the one being substituted. Nevertheless, it is possible 
+to derive, unfolding the substitution just like in the previous case:
+\begin{center}
+\varabs{y}{\subst{\WTypeTrans{A}}{x}{\WTrans{N}}}{\WTrans[\typing{y}{A}]{\subst{M}{x}{N}}}
+\end{center}
+Here is possible to apply the induction hypothesis over \WTrans[\typing{y}{A}]{\subst{M}{x}{N}}, 
+because the context can be instantiated arbitrarily,
+\begin{center}
+    \subst{\WTrans[\typing{y}{A}]{M}}{x}{\WTrans[\typing{y}{A}]{N}}
+\end{center}
+Additionally, we can assume that $y\notin\FreeVar{N}$ due to alpha rename which implies 
+\begin{center}
+$
+\WTrans[\typing{y}{A}]{N}
+\equiv
+\WTrans{N}
+$
+\end{center}
+because the context is used to type terms on two places and in those places is 
+possible to do an inversion over the derivation and \Context{} can be used instead of 
+\Context{},\typing{y}{A}. Then, by a folding of the translation we obtain
+\begin{center}\subst{\WTrans{\abs{y}{A}{M}}}{x}{\WTrans{N}}\end{center}
+\end{ProofCase}
+
+\begin{ProofCase}{$M \termDef \depArrow{y}{A}{B}$}
+It is necessary to do a case analysis over \ctyping{\subst{\depArrow{y}{A}{B}}{x}{N}}{s},
+for $s$ a sort.
+\begin{SubProofCase}{$s \termDef \Prop$}
+We have in this case after reduction
+\begin{center}
+$\depArrow{y}{\WTypeTrans{\subst{A}{x}{N}}}{\WTypeTrans[\typing{y}{A}]{\subst{B}{x}{N}}}$
+$\equiv$
+$\depArrow{y}{\WTypeTrans{\subst{A}{x}{N}}}{\WTrans[\typing{y}{A}]{\subst{B}{x}{N}}}$
+\end{center}
+where the last equivalence holds because $\ctyping[\typing{x}{A}]{B}{\Prop}$. In this scenario,
+the remaining of the subcase is equal to the lambda case.
+\end{SubProofCase}
+
+\begin{SubProofCase}{$s \termDef \Type$}
+We have in this case after reduction
+\begin{center}
+$\app{\TypeVal}{M_1}{M_2}$
+\end{center}
+with
+\begin{itemize}
+\item $M_1 \termDef \depArrow{y}{\WTypeTrans{\subst{A}{x}{N}}}{
+                            \WTypeTrans[\typing{y}{A}]{\subst{B}{x}{N}}}$
+\item $M_2 \termDef \abs{e}{\ExceptionType}{y}{\WTypeTrans{\subst{A}{x}{N}}}{
+                            \app{\WTransErr[\typing{y}{A}]{\subst{B}{x}{N}}}{e}}$
+\end{itemize}
+Both cases were solved previously by an unfolding, induction 
+hypothesis application and folding again.
+\end{SubProofCase}
+Note that here no distinction were made between the binder being substituted and the one binding.
+That is because the treatment is similar to what we did in the lambda case
+\end{ProofCase}
+\end{Proof}

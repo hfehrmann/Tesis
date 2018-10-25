@@ -1,0 +1,1140 @@
+\chapter{Background}
+\label{ch:introduction}
+
+Since a long time ago mathematical theorems where reviewed by peers in order to accept them. The problem with
+this approach is that it is error prone. The complexity of mathematical theorems is increasing and so are the 
+proofs. It is not rare to get lost at a some step of the demonstration or miss a crucial step. This may lead to 
+accept theorems by the community that have a flaw in their proofs.
+
+The previous problem motivated the development of machine verification of theorems and proofs in order to 
+eliminate the human error. The automated theorem verification  automated theorem pro (CHANGE!!!)
+
+In this chapter, we introduce several concepts to understand our work. 
+
+\section{Lambda Calculus}
+\newcommand{\lambdaCalc}{$\lambda$-calculus}
+Programming languages are complex. In order to captures these complexities is necessary 
+to define abstractions. The lambda calculus is one. 
+
+In order to develop mathematics, is necessary to define a context in which such definitions make sense. This
+context, however, can be implicit or be formulated in natural language.
+This motivated Church in the late 30's to create a logical framework
+in which every variable and proposition should state explicitly the context in which it is defined.
+The logical framework he created was the lambda calculus (\lambdaCalc{})\cite{Church:lambdaIntro}. 
+
+Church intended to use this framework as a foundation of mathematics, but  was demonstrated logically
+inconsistent (\cite{KleeneRosser:InconsistencyLogix}). It then was used to capture the
+notion of computation \cite{Church:lambdaComputable} and demonstrated equivalent to the Turing machine.
+
+The \lambdaCalc{} is composed by three expressions.
+\begin{itemize}
+    \item \textbf{Variables:} $x,\ y\ ,z,\ \dots$
+    \item \textbf{Applications:} $\app{t_1}{t_2}$
+    \item \textbf{Abstractions:} $\lambda x.t$
+\end{itemize}
+These expressions can be composed to form the \emph{terms}
+of the calculus. We present them in Backus-Naur form:
+\begin{center}
+    $t,u ::= \x{}\ |\ \lambda x.t\ |\ t\ t$
+\end{center}
+
+The term $x$ represents a variable. It can also be thought as an identifier for some expression.
+The term $\lambda x.t$ 
+represents a function (lambda). It takes a parameter $x$ and a body $t$, where $x$ can be used in 
+$t$. Lastly, $t_1\ t_2$ represents an application, \ie{}, apply the term $t_2$ to the term $t_1$. 
+The following expressions are valid terms: 
+\begin{center}
+\hspace{2em} $x$
+\hspace{2em} $y$
+\hspace{2em} $\lambda x.x$
+\hspace{2em} $\lambda x.\lambda y. x$
+\hspace{2em} $\lambda z.z(\lambda x. y)$
+\end{center}
+but these are not:
+\begin{center}
+\hspace{2em} $\lambda$
+\hspace{2em} $\lambda x.$
+\hspace{2em} $\lambda x. \lambda$
+\end{center}
+As a convenience, the terms of the form $\lambda x. \lambda y. (\dots)$ are written as $\lambda x\y.(\dots)$.
+
+With this simple setting is possible to capture the essence of computation. We know how programs look, but we do not
+know how programs compute. Intuitively, if we have a term of the form $(\lambda x. x) y$, then it should compute 
+to $y$, but this step of computation is not declared in the syntax. How  terms are computed or \emph{evaluated}
+correspond to the \emph{semantic of the calculus}. The semantic establishes what a program means and can be
+formalized in a variety of ways. Throughout the document, we define the semantics of the calculi through 
+\emph{operational semantics}. Operational semantics specifies the behavior by defining an abstract machine
+\cite{Tapl:2002}. Before giving some examples, we have to introduce some definitions:
+
+\begin{Definition}[Bound and free variables]
+\label{def:boundFreeVar}
+A variable $x$ is said to be bound if $x$ is a sub-expression of $\lambda x.t$, and it is bound
+to the innermost enclosed syntactical lambda. A variable that is not bound, is said to be free.
+\end{Definition}
+For example, in $\lambda x.(y\ x\ z\ (\lambda xz.z\ x))$ the variable $y$ is free, the the variable $x$ 
+is bound and the variable $z$ is free in the outermost lambda and bounded in the inner one.
+$x$ has two different scopes. The $x$ inside the inner lambda is not the same 
+variable $x$ of the outer lambda.
+
+\begin{Definition}[Substitution]
+\label{def:untypedSubst}
+Given a term $t$ and $u$, we define the substitution $\untypedSubst{t}{u}{x}$ where all free occurrences of $x$ are
+replaced by $u$.
+\end{Definition}
+With this definition we have that 
+$\untypedSubst{(\lambda x.(y\ x\ z\ (\lambda xz.z\ x)))}{t}{z} = \lambda x.(y\ x\ t\ (\lambda xz.z\ x))$.
+Note that the 
+inner $z$ was not replaced.
+
+Now we are able to define what a \betaRed{}:
+\begin{Definition}
+\def\tl{$(\lambda x.t_1)\ t_2$}
+\def\ts{$\untypedSubst{t_1}{t_2}{x}$}
+Given a term with the following form \tl{}, we say that it $\beta$-reduce to \ts{}. The terms of the form
+\tl{} are called redex.
+\betaRed{} is the process of taking redex and apply the substitution in the previous way.
+\end{Definition}
+
+Note that \betaRed{} does not impose any condition on the terms. It only specify when it can be applied.
+For example, a valid \betaRed{} of the term $\lambda x.((\lambda y. y)\ z)$ is $\lambda x.z$. 
+If this is a valid reduction or not depends on the semantic we are embedding on the calculus. More precisely,
+a reduction strategy establish where is possible to apply a reduction on a term \cite{Tapl:2002}.
+\begin{itemize}
+    \item Full $\beta$-reduction: All redex are reducible
+    \item Normal-order reduction: Leftmost, outermost redex expression is reduced first
+    \item Call-by-name reduction: Leftmost expression is reduced first, but forbidding reduction inside 
+          abstractions.
+    \item Call-by-name reduction: Leftmost expression redex is reduced until lambda abstraction. Then arguments
+          are reduced by same strategy. Then reduce the resulting redex. Here, reduction inside abstractions are
+          forbidden as well.
+\end{itemize}
+
+In \figRef{fig:ExOpSem} we have an example of operational semantics for a call-by-name strategy.
+These rules establish the following reduction strategy:
+first evaluate the left term and if the left term is a lambda,
+substitute the right term.
+
+Evaluate a term corresponds to keep apply reduction rules until no further applies. When no rules 
+applies, it is said that is in \emph{normal form}.
+\begin{Definition}[Normal form]
+A term $t$ is said to be in normal form if no reduction rule applies.
+\end{Definition}
+\noindent Here is an example of computation:
+\begin{center}
+    $((\lambda x. x)\ (\lambda y. y))\ z \reductionBeta{} (\lambda y. y)\ z \reductionBeta{} z$
+\end{center}
+The variable $z$ is the result of the computation because it is in normal form. Another valid 
+computation is the following, keeping in mind this definition $\Omega=(\lambda x.x\ x)\ (\lambda x.x\ x)$:
+\begin{center}
+$\Omega\ \Omega \reductionBeta{} \Omega\ \Omega \reductionBeta{} \dots $
+\end{center}
+$\Omega$ applied to itself $\beta$-reduce to source term. 
+This term never stops reducing, which means that the term does not have 
+a normal form. The fact that exists non-terminating terms on the calculus has huge implications: being equivalent
+to Turing machines and the inconsistency as a logic.
+\begin{figure}
+    \centering
+    \begin{mathpar}
+        \inferrule{ }{(\lambda x. t_1)\ t_2 \reductionBeta{} \untypedSubst{t_1}{t_2}{x}}
+        \and
+        \inferrule{t_1 \reductionBeta{}\ t_2}{t_1\ t \reductionBeta{} t_2\ t}
+    \end{mathpar}
+    \caption{Example of operational semantic}
+    \label{fig:ExOpSem}
+\end{figure}
+\vspace{1em}
+\todo{add section}
+
+The lambda calculus can also be seen as a simple programming language\footnote{The words calculus and language are 
+used interchangeably.} with only function definition and application.  
+While it is possible to encode the natural, booleans, and their operators (if, plus, etc.) in this simple
+language, another approach is to add them to the core. This extends the range of terms in the 
+following way:
+\begin{center}
+$
+    \begin{array}{@{ }r@{ }c@{}l}
+    n &{}::=&\ 1\ |\ 2\ |\ 3\ |\ \dots\\
+    b &{}::=&\ \trueTerm\ |\ \falseTerm
+    \end{array}
+$
+\end{center}
+
+\noindent Here we define the booleans and naturals, and now we add them, plus their operators, to the
+calculus:
+\begin{center}
+$
+    \begin{array}{@{ }r@{ }c@{}l}
+    k &\::=&\ n\ |\ b \\
+    n &\::=&\ k\ |\ \x{}\ |\ \lambda x.t\ |\ \app{t}{t}\ |\ t+t\ |\ t\times t\ \\
+      &    &\ \ifterm{t}{t}{t}
+    \end{array}
+$
+\end{center}
+In \figRef{fig:ExtUntypedLambdaCalcOpSemantic} is presented an additional subset of operational semantic rules. 
+Here is 
+stated that to evaluate an \emph{if} term is necessary to evaluate the conditional first in order to select the
+branch, and to evaluate the sum is necessary to evaluate the left term first and then the right term.
+
+\begin{figure}
+    \centering
+    \begin{mathpar}
+        \inferrule{ }{\ifterm{\trueTerm}{t_1}{t_2} \reductionBeta{} t_1}
+        \and
+        \inferrule{ }{\ifterm{\falseTerm}{t_1}{t_2} \reductionBeta{} t_2}
+        \\
+        \inferrule{t \reductionBeta{} t'}{
+                   \ifterm{t}{t_1}{t_2} \reductionBeta{} \ifterm{t'}{t_1}{t_2}}
+        \\
+        \inferrule{ \exists n_3 , n_3 = n_1 + n_3}{ n_1 + n_2 \reductionBeta{} n_3}
+        \and
+        \inferrule{t_1 \reductionBeta{} t'_1}{ t_1 + t_2 \reductionBeta{} t'_1 + t_2}
+        \and
+        \inferrule{t_2 \reductionBeta{} t'_2}{ n + t_2 \reductionBeta{} n + t'_2}
+    \end{mathpar}
+    \caption{Subset of rules of operational semantic for extended \lambdaCalc{}}
+    \label{fig:ExtUntypedLambdaCalcOpSemantic}
+\end{figure}
+
+The additions to the core calculus exposes some issues inherent to the \lambdaCalc.
+The following terms are valid in the language: 
+$\app{(\lambda x.x)}{1}$, $1 + 0$, $\ifterm{\trueTerm}{\falseTerm}{\trueTerm}$, $\trueTerm + 1$,
+$(\app{2}{\falseTerm})$ (note that the last one is an application). All this term reach a normal form, but not all
+made \emph{sense}: $\trueTerm + 1$, $(\app{2}{\falseTerm})$.
+Intuitively, a boolean and a number can not be added, and boolean can not be applied to a number. 
+
+All the previous issues motivated Church to define a variant of the \lambdaCalc{}: the typed lambda calculus.
+
+\section{Typed Lambda Calculus}
+\newcommand{\tlambdaCalc}{$\lambda_{\rightarrow}$-calculus}
+\newcommand{\extTlambdaCalc}{$\lambda_{E\rightarrow}$-calculus}
+The simple typed lambda calculus \cite{Church:lamdaTypeIntro} (\tlambdaCalc{})
+is a variant of \lambdaCalc{} in which every abstraction specifies
+the type of its argument:
+\begin{align*}
+    T & ::= \tau\ |\ \arrow{T}{T} \\
+    t & ::= \x{}\ |\ \lambda x:T.t\ |\ t\ t
+\end{align*}
+Where $\tau \in B$ with $B$ being a set of base types.
+
+\begin{figure}
+    \centering
+    $
+    \begin{array}{@{\ } r @{\ } c @{\ } l}
+        B &\termDef& \{Int,\ Bool\}\\
+        T & ::=& \tau\ |\ \arrow{T}{T} \\
+        k & ::=& n\ |\ b \\
+        t & ::=& k\ |\ \x{}\ |\ \lambda x:T.t\ |\ \app{t}{t}\ |\ t+t\ |\ t\times t\ \\
+          &    & \ifterm{t}{t}{t}
+    \end{array}
+    $
+    \caption{Extended simple typed lambda calculus (\extTlambdaCalc{})}
+    \label{fig:extTypedCalc}
+\end{figure}
+
+Just as before, it is possible to add some primitives to the language just like in the untyped case (see
+\figRef{fig:extTypedCalc}).
+Nevertheless, in this language is also possible to define the same \emph{nonsensical} terms. It seems that 
+tagging the abstraction is useless. The missing key element is a \emph{type system}. Is the type 
+system that discards such terms.
+
+\subsection{Type system}
+\label{TypeSystem}
+A type system is set of rules, called typing judgments, that ensures that a set of errors could not occur 
+at execution time by doing a static analysis.
+This is done by applying the typing judgments
+over the terms, assigning them types and ensuring that the terms are composed correctly. Thus, if a 
+type system fails to type a term, the term is probably ill formed.
+
+Type systems enforce properties. The rules that conforms them are designed to establish properties 
+over the terms of the language. For example, it is possible to establish a type system over 
+\extTlambdaCalc{} such as only numbers can be added with the following rules:
+\begin{mathpar}
+    \inferrule{n\in\Nat}{n:\tInt} 
+    \and 
+    \inferrule{n_1:\tInt \and n_2:\tInt}{n_1 + n_2:\tInt}
+\end{mathpar}
+Types systems can enforce much more complex properties such as: concurrent programs can not modify shared 
+data, keep track of effects. This also modifies the type system in order to keep track of the desired properties.
+
+\begin{figure}
+    \begin{mathpar}
+    \inferrule{ }{\trueTerm:\tBool}
+    \and 
+    \inferrule{ }{\falseTerm:\tBool}
+    \and
+    \inferrule{n\in\Nat}{n:\tInt} 
+    \and
+    \inferrule{x:T\in\Context}{\ctyping{x}{T}} 
+    \\
+    \inferrule{\ctyping{t_1}{\tInt} \\ \ctyping{t_2}{\tInt}}{\ctyping{t_1 + t_2}{\tInt}}
+    \and
+    \inferrule{\ctyping{t_1}{\tInt} \\ \ctyping{t_2}{\tInt}}{\ctyping{t_1 \times t_2}{\tInt}}
+    \and
+    \inferrule{\ctyping{t_1}{\tBool} \\ \ctyping{t_2}{T} \\ \ctyping{t_3}{T}}{%
+               \ctyping{\ifterm{t_1}{t_2}{t_3}}{T}
+              }
+    \\
+    \inferrule{\ctyping[x:A]{t}{B}}{\ctyping{\lambda x:A.t}{\arrow{A}{B}}}
+    \and
+    \inferrule{\ctyping{t_1}{\arrow{A}{B}} \and \ctyping{t_2}{A}}{%
+               \ctyping{\app{t_1}{t_2}}{B}}
+    \\
+    
+    \end{mathpar}
+    \caption{Type system for extended typed lambda calculus}
+    \label{fig:extTypSysTypCalc}
+\end{figure}
+
+In \figRef{fig:extTypSysTypCalc} is defined a type system over the extended typed lambda calculus. Note 
+that in order to type check the terms, is necessary to have a \emph{context} \Context{}. 
+A context \Context{} is used to keep track of variables names and their types (it similar to a list).
+For the particular case of 
+abstraction, is necessary to assume that there exists a variable 
+$x$ with type $A$ in the context plus the other variables and their types.
+The definition of context is the following;
+\begin{center}
+$\begin{array}{r@{\ }c@{\ }l} \Context &::=&\EContext\ |\ \Context,x:T\end{array}$    
+\end{center}
+We define \domContext{\Context} as $\{x\ |\ (\typing{x}{T})\in\Context\text{ for some }T\}$. Also, due to 
+$\alpha$-conversion, we assume throughout this document that all variables are unique both 
+in the context and terms.
+
+The type of a term is derived as a tree. For example, the derivation tree of 
+\begin{center}
+$\ctyping{\ifterm{\trueTerm}{(\app{(\abs{x}{\tInt}{x})}{1})}{n}}{\tInt}$
+\end{center}
+where $\Context\termDef\typing{n}{\tInt}$ is
+\begin{mathpar}
+\inferrule*{
+    \inferrule*{ }{\ctyping{\trueTerm}{\tBool}}
+    \and
+    \inferrule*{ 
+        \inferrule*{ 
+            \inferrule*{ 
+                \inferrule{ }{\typing{x}{\tInt} \in \Context,\typing{x}{\tInt}}
+            }{\ctyping[\typing{x}{\tInt}]{x}{\tInt}}
+        }{\ctyping{(\abs{x}{\tInt}{x})}{\arrow{\tInt}{\tInt}}}
+        \and
+        \inferrule*{1\in\Nat}{\ctyping{1}{\tInt}}
+    }{\ctyping{(\app{(\abs{x}{\tInt}{x})}{1})}{\tInt}}
+    \and
+    \inferrule*{\inferrule*{ }{\typing{x}{T}\in\Context}}{\ctyping{n}{\tInt}}
+    }{
+    \ctyping{\ifterm{\trueTerm}{(\app{(\abs{x}{\tInt}{x})}{1})}{n}}{\tInt}}
+\end{mathpar}
+However, not all terms have a valid derivation tree: is not possible to give a type to $\trueTerm + 1$. 
+When this happens, it is said that the term is \emph{ill-typed}.
+
+Note here that we have a similar syntax and the same semantics of the untyped lambda calculus, but on top 
+we define a type systems. Only well-typed terms can be executed in the \tlambdaCalc{}.
+
+\subsection{Properties of the simple typed lambda calculus}
+
+Working only with well typed terms have some implications both
+as a programming language and as a logic. Before proceeding, we need to know what is the 
+\emph{normalization property}.
+\begin{Definition}[Normalization]
+A calculus is said to has the strong normalization property if every term valid in the calculus is strongly 
+normalizable: a term reach its normal form for every reduction sequence.
+A calculus is said to has the weak normalization property if for every term exists one sequence normalizable.
+\end{Definition}
+\noindent The simple typed lambda calculus has the strong normalization property with 
+respect to \betaRed{}\cite{tait:typedLambdaStrong1967}.
+
+From a programming language perspective, recursion or self-referencing
+application is not supported anymore. This is due to the fact that well-typed terms in \tlambdaCalc{} 
+have a normal form and with recursion is possible to define non-terminating terms. In general, 
+is not possible to give a type to non-terminating terms: $\Omega$ can not be typed for example. As a 
+result, this version of the lambda calculus is not Turing complete.
+
+From a logic perspective, the calculus recover logical consistence, as Church intended, and is equivalent
+to first order logic. Interestingly, because the calculus can be seen as a programming language, this establishes
+a connection between first order logic and programming languages. In fact, this connection scales to logics 
+in general and is called the \emph{Curry-Howard correspondence}:
+\begin{center}
+    \begin{tabular}{ll}
+         Logic & Calculus \\
+         \hline
+         Propositions & Types \\
+         Implication $P\supset Q$ & Type $\arrow{P}{Q}$ \\
+         Proof of proposition $P$ & Term $t$ with type $P$ \\
+         Proposition $P$ is provable & Type $P$ is inhabited
+    \end{tabular}
+\end{center}
+From here is stated the famous phrase: \emph{proposition as types, proof as programs}.
+The normalizing property plays a role in logic as well: this is the property that
+gives consistency (\todo{cita: es intucion}).
+
+\subsection{Further than simple typed lambda calculus}
+\newcommand{\lambdaCube}{$\lambda$-cube}
+From a purely syntactic way, lambda terms are terms abstracted over terms. A valid question is what other kinds
+of abstraction exist. For our purpose, we present the next three:
+\begin{itemize}
+    \item Terms abstracted over types ($\lambda 2$): these terms are of the form $\Lambda X.t$. They type to
+    $\forall X.T$ where $X$ can be used as an identifier in $T$. These kind of terms are known as parametric
+    polymorphic functions. They can be instantiated with any type.
+    
+    \item Types abstracted over types ($\lambda \omega$): this abstraction are of the form $\lambda X:K.T$.
+    Here, $K$ are \emph{kinds} and they are the types of the types ($K::=\ast|K\Rightarrow K$).
+    Note that in this case, this lambda is at the type level. It can be seen as an embedding of the 
+    simple typed lambda calculus at the type level: base and function types type to $\ast$, and lambda on 
+    types type to $K\Rightarrow K'$ for some $K$ and $K'$. This abstraction is known as type constructors. 
+    
+    \item Types abstracted over terms ($\lambda P$): this abstraction also live in the type level. They 
+    are of the form $\Pi x:T.T$ and represents functions where the parameter $x$ can be used in $T$. 
+    The form of the type is known as dependent product and it is a generalization of the arrow function type.
+    The arrow function type is a dependent product where the parameter is not used in the domain
+    ($\arrow{T_1}{T_2} = \depArrow{\:\_}{T_1}{T_2}$). This abstraction is known as dependent types because
+    types can depend on terms
+\end{itemize}
+
+Barendregt created the \lambdaCube{} \cite{barendregt1991:PTS}
+to explore how these kinds of abstraction interact with each other and
+what calculus they form. Starting from the simply typed lambda calculus, the calculi are ordered by inclusion. Each
+axis add an specific abstraction. Here is a graphic representation of the \lambdaCube{}.
+
+\begin{center}
+\begin{tikzpicture}
+\node (A) at (0,0) {$\lambda_{\arrow}$};
+\node (B) at (0,3) {$\lambda 2$};
+\node (C) at (3,0) {$\lambda P$};
+\node (D) at (1,1) {$\lambda\omega$};
+\node (E) at (3,3) {$\lambda P2$};
+\node (F) at (1,4) {$\lambda 2\omega$};
+\node (G) at (4,1) {$\lambda P\omega$};
+\node (H) at (4,4) {$\CC$};
+
+\draw[->,thick,gray] (D) edge[<-] (A) edge (F) edge (G);
+\draw[->,thick] (A) edge (B) edge (C)
+                (B) edge (F) edge (E)
+                (C) edge (G) edge (E)
+                (F) edge (H)
+                (E) edge (H)
+                (G) edge (H);
+\end{tikzpicture}
+\end{center}
+
+\newcommand{\SystemF}{\textsf{System F}}
+
+The majority of this system has been studied (\todo{cite all papers paja}). 
+The culmination of the \lambdaCube{}
+is the Calculus of Construction (\CC{}) created by Coquand and Huet \cite{coqhuand:CoCIntro}. Here we have 
+all abstractions: terms abstracted over types, types abstracted over types, and types abstracted over terms.
+
+All the systems in \lambdaCube{} are known to have the strongly normalizable property and the are all
+related to some logic: $\lambda 2$, also known as \SystemF{} introduced independently at 
+\cite{girard:Paradox,Reynolds:systemFIntro}, is equivalent to second order logic, for example.
+
+\subsection{Calculus of Constructions}
+In \CC{}, the propositions (types) that can be stated are much more fine grained compared to the simply 
+typed lambda calculus. This is due to the combination of dependent types, type constructor and type quantification,
+which gives a very expressive framework to develop mathematics, via the Curry-Howard correspondence,
+whose proof of propositions can be verified by a type system. Furthermore, because lambda 
+calculus can also model programming languages, this gives a framework for establishing propositions over 
+programs in the same language. 
+
+\section{Calculus of Inductive Constructions}
+\label{sec:CIC}
+In this section we present the calculus of inductive constructions (\CIC{})
+\cite{werner1994:IntroCIC,coqRef} in detail,
+and how it can be used to develop mathematics from another perspective. The presentation we
+give is by step, starting from a calculus without inductives but equal in every other aspect. Such calculus
+is the predicative calculus of constructions (\CCw{}) which is an extension of \CC{} with a predicative 
+sort \footnote{This will be defined in a moment}, much like
+Luo's Extended Calculus of Construction \cite{Luo1994:ECC}
+without $\Sigma$-types. 
+% This calculus does not have an impredicative sort, so we include it. 
+% This presentation is extracted from \cite{coqRef}.
+
+\subsection{Terms} \todo{Quizas hablar sobre el ambiente global}
+Terms represent the valid syntactical expressions of the calculus. \CIC{} was designed to not make a 
+syntactic distinction between types and terms in the sense of simply typed lambda calculus. This decision
+produce a problem though. Every term must have a type (a posteriori), but types do not type to anything yet.
+It is naturally then to define the \emph{sorts}
+
+\begin{Definition}[Sort] Sorts are the types of types.\end{Definition}
+\noindent Because sorts can be seen as types, they also are a valid syntactic expression. More formally,
+sorts are defined in \CCw{} as:
+\begin{center}
+    $\Sort{} = \{\Prop\} \cup \{\Type{}\ |\ i\in\Nat\} $
+\end{center}
+Here \Prop{}, readed as prop, represent the type of propositions and \Type{}, readed as universe,
+represents the type of types. Note that types are accompanied by \emph{universe levels}, 
+represented by $i$ in \Type{}. In \sectRef{CCw-TypeSystem} will be explained why is needed this structure. 
+From now on, for every expression $\ctyping{A}{s}$ we assume that $s\in\Sort$.
+
+As usual, we need to keep track of variables when typing abstractions. However, this approach does not allow
+to view the type theory as a system. Instead of using the context only to type abstractions, we also add
+the valid definitions. Also, we support the addition of assumptions. Definitions are represented by 
+$(c:=M:T)$ and assumptions by $(c:T)$.
+Although the contexts 
+are not a syntactic construction, they are a sort of a meta-term used to type check. 
+
+Recall in the untyped lambda calculus, we had defined the substitution by $\untypedSubst{t}{u}{x}$ in 
+\defRef{def:untypedSubst}. Now we are 
+going to redefine it with a different syntax, to make it more explicit, but keeping the same behavior, \ie{}, 
+substitute only the free variables. The definition of free and bound variables are derived from 
+\defRef{def:boundFreeVar}.
+\begin{Definition}[Substitution: Redefinition]
+Given terms $M$ and $N$, then $\subst{M}{x}{N}$ represents the term $M$ where all free occurrence of the 
+variable $x$ are replaced by the term $N$.
+\end{Definition}
+
+To summarize, the valid syntactical expressions are: variables, lambda abstractions, applications, dependent
+products and sort. In \figRef{fig:CCwExpression} is the syntax definition.
+
+\begin{figure}
+    \centering
+    $A,B,C,D,I,N,M,R,S\ \termDef\ \Type\ |\ \Prop\ |\ x\ |\ \app{M}{N}\ |\ \abs{x}{A}{M}\ |\ \vardepArrow{A}{B}$\\
+    \rule{0.75\textwidth}{0.4pt}\vspace{4pt}\\
+    $\Context,\varContext\ \termDef\ \EContext\ |\ \Context,\typing{x}{A}\ |\ 
+                                      \Context,\definitionWtype{x}{M}{A}$ %\vspace{4pt}\\
+    %$\GContext \termDef \EContext\ |\ \GContext,\typing{x}{A}\ |\ \GContext,\typing{x\termDef M}{A}$
+    \caption{Valid syntactic expression of \CCw{} + \Prop{}}
+    \label{fig:CCwExpression}
+\end{figure}
+
+\subsection{Type system}
+\label{CCw-TypeSystem}
+
+We now have the valid syntactic expression that correspond to the calculus. We proceed to define
+a type discipline over these expressions. This is done by defining simultaneously two judgments. 
+The first one is \ctyping{M}{A} which establish that the term $M$ as type $A$ in the context \Context{} 
+and the \wfContext{\Context} which establish that the context is valid.
+
+We introduce the rules and give a brief explanation:
+\newcommand{\CicWfEmpty}{\textsc{WF-Empty}}
+\begin{mathpar}
+\inferrule*[lab=\CicWfEmpty]{ }{\wfContext{[]}}
+\end{mathpar}
+This establish that an empty context is valid.
+
+\newcommand{\CicWfHyp}{\textsc{WF-Hyp}}
+\newcommand{\CicWfConst}{\textsc{WF-Const}}
+\begin{mathpar}
+\inferrule*[lab=\CicWfHyp]{\ctyping{A}{s} \and x\notin\Context}{\wfContext{\Context,\typing{x}{A}}}
+\and 
+\inferrule*[lab=\CicWfConst]{\ctyping{M}{A} \and x\notin\Context}{\wfContext{\Context,\definitionWtype{x}{M}{A}}}
+\end{mathpar}
+In the first case, we are adding an assumption to the context and in the second case a definition.
+
+\newcommand{\CicType}{\textsc{Type}}
+\newcommand{\CicProp}{\textsc{Prop}}
+\begin{mathpar}
+\inferrule*[lab=\CicType]{\wfContext{\Context}}{\ctyping{\Type[i]}{\Type[i+1]}}
+\and 
+\inferrule*[lab=\CicProp]{\wfContext{\Context}}{\ctyping{\Prop}{\Type[1]}}
+\end{mathpar}
+% The first rule define the cumulative structure of universes. Cumulative means that if the universe is smaller 
+% (expressed by the rule $i<j$), then is contained in the bigger universe. 
+The \CicType{} has this form to avoid the Girard's 
+Paradox \cite{girard:Paradox}, which arises if we allowed $\typing{\Type[]}{\Type[]}$ (without universes).
+Note that \Prop{} is contained in a universe and not in itself.
+
+\newcommand{\CicVar}{\textsc{Var}}
+\begin{mathpar}
+\inferrule*[lab=\CicVar]{
+    \wfContext{\Context} \and 
+    (\typing{x}{A})\in\Context\text{ or }(\definitionWtype{x}{M}{A})\in\Context\text{ for some }M}{
+    \ctyping{x}{T}}
+\end{mathpar}
+This rule establishes that assumptions or definitions in context can be derived.
+
+\newcommand{\CicProdImpr}{\textsc{Prod-Impr}}
+\newcommand{\CicProdForm}{\textsc{Prod-Form}}
+\begin{mathpar}
+    \inferrule*[lab=\CicProdImpr]{\ctyping{A}{s} \and \ctyping[\typing{x}{A}]{B}{\Prop}}{
+               \ctyping{\depArrow{x}{A}{B}}{a}}
+    \and
+    \inferrule*[lab=\CicProdForm]{\ctyping{A}{\Type} \and \ctyping[\typing{x}{A}]{B}{\Type}}{
+               \ctyping{\depArrow{x}{A}{B}}{\Type}}
+    % \and
+    % \inferrule*[lab=Prod-Type]{\ctyping{A}{\Type[j]} \and \ctyping[\typing{x}{A}]{B}{\Type[i]}}{
+    %           \ctyping{\depArrow{x}{A}{B}}{\Type[max(i,j)]}}
+\end{mathpar}
+Here are the type judgments of the dependent product. Note the impredicativity of \CicProdImpr{}, \ie{},
+the sort of the argument is not relevant.
+
+\NewDocumentCommand{\convTyping}{O{\Context}m}{\ensuremath{#1\vdash#2}}
+\renewcommand{\convertible}[3][\Context]{\ensuremath{\convTyping[#1]{#2\equiv#3}}}
+\newcommand{\CicConv}{\textsc{Conv}}
+\begin{mathpar}
+    \inferrule*[lab=\CicConv]{\ctyping{M}{B} \and \ctyping{A}{s} \and \convertible{A}{B}}{
+               \ctyping{M}{A}}
+\end{mathpar}
+This rule is the conversion rule. Intuitively, it allows to change the type of a term to another \emph{equal} type.
+The notion of convertibility would be defined in \sectRef{section:CCwConversion}.
+
+\newcommand{\CicLam}{\textsc{Lam}}
+\newcommand{\CicApp}{\textsc{App}}
+\begin{mathpar}
+    \inferrule*[lab=\CicLam]{\ctyping[\typing{x}{A}]{M}{B} \and \ctyping{\depArrow{x}{A}{B}}{s}}{
+               \ctyping{(\abs{x}{A}{M})}{\depArrow{x}{A}{B}}}
+    \and
+    \inferrule*[lab=\CicApp]{\ctyping{M}{\depArrow{x}{A}{B}} \and \ctyping{N}{A}}{
+               \ctyping{(\app{M}{N})}{\subst{B}{x}{N}}}
+\end{mathpar}
+
+These judgments establish the type system over terms. We now proceed to explain what are conversion rules 
+used to type check the \textsc{Conv} judgment.
+
+\subsection{Conversion rules}
+\label{section:CCwConversion}
+
+Because types can depend on terms, it is necessary to allow \emph{computations} at the type level. For example, the 
+following types are essentially the same, but differ in a syntactical manner:
+\begin{center}
+    $\app{(\abs{A}{\Type[i+1]}{A})}{\Type[i]}$ \hspace{2em} $\Type[i]$
+\end{center}
+
+We say that these types are intentionally equal, or convertible. The rules that establish that the previous 
+types are convertible are the conversion rules and below we define all of them:
+
+\begin{adjustwidth}{2em}{0cm}
+\textDef{\betaRed{}} This rule was explained in the simple type lambda setting. Here, the properties of strong
+normalization and confluence are inherited, being \CCw{} an extension of \CC{}.
+\begin{center}
+    $\convTyping{\reductionBeta{\app{(\abs{x}{A}{M})}{N}}{\subst{M}{x}{N}}}$
+\end{center}
+
+\textDef{\iotaRed{}} This rule of conversion is related to inductive types. It will be defined in 
+\sectRef{subSect:InductiveTypes}.
+
+\textDef{\deltaRed{}} Given a context under which variables may exists. This rules allows the identification
+between the variable and its body, \ie{}, unfold the definition.
+\begin{mathpar}
+    \inferrule{\wfContext{\Context} \and (\typing{c\termDef M}{A})\in\Context}{
+               \convTyping{\reductionDelta{x}{M}}}
+\end{mathpar}
+
+\textDef{\etaExp{}} This rule allows the identification of function terms with its expansion.
+\begin{mathpar}
+    \inferrule{\wfContext{\Context} \and (\typing{c\termDef M}{(\depArrow{y}{A}{B})})\in\Context}{
+               \convTyping{\expansionEta{M}{\abs{x}{A}{(\app{M}{x}})}}}
+\end{mathpar}
+\end{adjustwidth}
+
+\subsubsection{Convertibility}
+We define \convTyping{\reductionStrat{M}{N}} as the compatible closure of \reduction{\beta\iota\delta}.
+We say that two terms $M_1, M_2$ are $\beta\iota\delta\eta$-convertibles (\convertible{M_1}{M_2})
+iff there exists some terms $N_1,N_2$ such that \convTyping{\reductionStrat{\reductionStrat{M_1}{\dots}}{N_1}}
+and \convTyping{\reductionStrat{\reductionStrat{M_2}{\dots}}{N_2}} and either $N_1$ and $N_2$ are identical, or
+they are convertible up to \etaExp{}
+
+\subsection{Subtyping relation}
+Up to now, we have not look at the cumulative property of \CIC{}, \ie{}, the property that a term that belongs
+to a universe $i$ also belongs to the universe $j$ if $i<j$. This property extends the equivalance relation of 
+convertibility to a subtyping relation. This relation is inductively defined by:
+\newcommand{\subConvertible}[3][\Context]{\ensuremath{#1\vdash#2\leq#3}}
+\begin{itemize}
+\item If \convertible{A}{B}, then \subConvertible{A}{B}
+\item If $i\leq j$, then \subConvertible{\Type}{\Type[j]}
+\item For any $i$, then \subConvertible{\Prop}{\Type}
+\item If \convertible{A}{B} and \subConvertible[\Context,\typing{x}{A}]{A'}{B'}, then
+      \subConvertible{\depArrow{x}{A}{A'}}{\depArrow{x}{B}{B'}}
+\end{itemize}
+With this relation, the \CicConv{} rule is redifined as
+\begin{mathpar}
+\inferrule*[lab=\CicConv]{\ctyping{M}{B} \and \ctyping{A}{s} \and \subConvertible{A}{B}}{
+               \ctyping{M}{A}}
+\end{mathpar}
+
+\subsection{Inductive types}
+\label{subSect:InductiveTypes}
+Until now, we have defined the valid expression and the type system of \CCw{}. \CIC{} is an extension of \CCw{},
+where inductive types can be added to the language. However, the ability to add inductives to the language
+does not give any extra power to the calculus at all, because inductives can be defined by their Church encoding
+\todo{donde esta esto}. Nevertheless, in the latter approach is impossible to define the induction principle for 
+inductives \cite{geuvers:IndNotDerivable2001}, while in \CIC{} is generated with a computational content. This
+gives more power to \CIC{} in contrast to \CCw{}.
+
+\subsubsection{Inductive introduction}
+\newcommand{\CicIndWf}{\textsc{Ind-WF}}
+\newcommand{\CicIndType}{\textsc{Ind-Type}}
+\newcommand{\CicIndConstr}{\textsc{Ind-Constr}}
+% IP = Inductive Parameters
+% II = Inductive Indices
+% IN = Inductive Name
+% IT = Inductive Type
+% IPN = Inductive Parameters Name
+% IIN = Inductive Indices Name
+% CT = Constructor Type
+% CN = Constructor Name
+\newcommand{\IP}{\ensuremath{P}}
+\newcommand{\II}{\ensuremath{U}}
+\newcommand{\IN}{\ensuremath{I}}
+\newcommand{\IT}{\ensuremath{D}}
+\newcommand{\IPN}{\ensuremath{p}}
+\newcommand{\IIN}{\ensuremath{u}}
+\newcommand{\CT}{\ensuremath{C}}
+\newcommand{\CN}{\ensuremath{c}}
+
+We proceed to define the syntax for declaring inductives and the type checking constraints that must satisfy 
+so that they can be added to the context. Note that in \CIC{} is possible to define mutual inductive types.
+\def\IndContextT{\ensuremath{\varContext_{I}}}
+\def\IndContextC{\ensuremath{\varContext_{C}}}
+\newcommand{\Constr}[2]{\ensuremath{\textsf{Constr}(#1,#2)}}
+
+\begin{Definition}[Inductive Block]
+\label{def:InductiveIntro}
+Inductive definitions are introduced by inductive blocks. Inductive blocks
+are of the form \IndIntro[n][\IndContextT][\IndContextC]{} where n represents the number of 
+parameters of the types, 
+\IndContextT{} the names of the inductives associated with their types and \IndContextC{} the constructors
+of the inductives under definition associated with their types.
+\end{Definition}
+\noindent Note that \IndContextT{} and \IndContextC{} are contexts. In addition, \IN{} is used to identify an
+inductive type and $c$ represents constructors.
+
+In \figRef{fig:InductivesExample} we see examples of (mutual) inductive definitions represented as inductive 
+blocks. Is important to note that this examples only represent syntax and additional checks are required 
+for it to be valid.
+
+\begin{figure}
+    \begin{CoqDef}
+    \\\IndIntro[0][
+          \typing{\IndbadOne}{\Type[0]}][
+          \typing{\text{bad1}}{\arrow{\IndbadOne}{(\arrow{(\arrow{\Indunit}{\IndbadOne})}{\Indunit})}{\IndbadOne}}]{}
+    
+    \IndIntro[1][
+          \typing{\IndbadTwo}{\arrow{\Type}{\Type}}][
+          \typing{\text{bad2}}{\app{\IndbadTwo}}{\Indunit}]{}
+          
+    \IndIntro[0][
+          \typing{\IndbadThree}{\Type[0]}][
+          \typing{\text{bad3}}{\IndbadOne}]{}
+    
+    \IndIntro[0][
+              \typing{\Indnat}{\Type[0]}][
+              \typing{\ConsO}{\Indnat},\typing{\ConsS}{\arrow{\Indnat}{\Indnat}}]
+              
+    \IndIntro[1][
+              \typing{\Indvec}{\depArrow{A}{\Type}{\arrow{\Indnat}{\Type}}}][\\\hspace*{2em}
+              \typing{\Consvnil}{\depArrow{A}{\Type}{\app{\Indvec}{A}{\ConsO}}},
+              \typing{\Consvcons}{
+                      \depArrow{A}{\Type}{n}{\Indnat}{\arrow{A}{
+                                \app{\Indvec}{A}{n}}{\app{\Indvec}{A}{(\app{\ConsS}{n})}}}}]{}
+    \IndIntro[0][
+           \typing{\Indeven}{\arrow{\text{nat}}{\Type[0]}}, \typing{\Indodd}{\arrow{\text{nat}}{\Type[0]}}][
+           \\\hspace*{2em}
+           \typing{\text{even0}}{\app{\Indeven}{0}},
+           \typing{\text{evenS}}{
+                  \depArrow{n}{\text{nat}}{
+                            \arrow{\app{\Indodd}{n}}{
+                                   \app{\Indeven}{(\app{\text{S}}{n})}}}},\\\hspace*{2em}
+            \typing{\text{oddS}}{
+                    \depArrow{n}{\Indnat}{
+                              \arrow{\app{\Indeven}{n}}{
+                              \app{\Indodd}{(\app{\ConsS}{n})}}}}]
+    \end{CoqDef}
+    \caption{Examples of inductive definitions}
+    \label{fig:InductivesExample}
+\end{figure}
+
+In order to maintain the logic consistency of the calculus, a restriction must be made over the structure of 
+the inductives block. Thus, every time we declare an inductive block, we run a type check over the block
+before adding the inductive types and their constructors to the context. Before giving the 
+typing rules for inductives, is necessary the following definition.
+
+\begin{Definition}[Arity of $s$] 
+A type $A$ is said to be an arity of $s$, with $s\in\Sort$, if either $A$ is convertible to s or to a product
+$\depArrow{x}{B}{A'}$ with $A'$ an arity of s.
+\end{Definition}
+
+\noindent From the previous definition, we say that a type $A$ is an arity if there exists some $s$ 
+such as $A$ is an arity of $s$.
+
+\begin{Definition}[Type constructor] 
+We say that \CT{} is a type constructor of \IN{} if:
+\begin{itemize}
+\item \CT{} is ($\app{I}{R_1}{\dots}{R_n}$).
+\item \CT{} is ($\depArrow{x}{A}{C'}$) where $C'$ is a type constructor of \IN{}.
+\end{itemize}
+\end{Definition}
+
+\noindent From this we derive the concept of a constructor for a type \IN{}; 
+if $(\typing{\CN}{\CT})\in\IndContextC$, then we say that \CN{} is a constructor of \IN{} iff \CT{} is a
+type constructor of \IN{}. We see in \figRef{fig:InductivesExample}
+that \CoqDefinition{even0} and \CoqDefinition{evenS} are constructors 
+of \Indeven{}, and \CoqDefinition{oddS} is a constructor of \Indodd{}. In the \Indnat{} case,
+both \ConsO{} and \ConsS{} are constructors of \Indnat{}.
+
+The type checks are declared in \figRef{fig:CIC-Ind-rules} and are added to the \CCw{} ones
+(extracted from \cite{timanySozeau:Consistency-pCuIC}). 
+
+Note that in \CicIndWf{} rule we have a set $\Constr{\IndContextC}{\IN}$ which represent the constructors
+of \IN{} in \IndContextC{}, and a new predicate 
+\IndCheck{} that verify the following conditions:
+\begin{itemize}
+\item All variables in \IndContextT{} and \IndContextC{} are distinct
+
+\item The first n arguments of all inductives and constructors of the block are the parameters. This means that 
+there exists a sequence $\vv{\IP}$ such that $\textsf{len}(\vv{\IP})=n$ and for every
+\mbox{$(\typing{x}{A})\in\IndContextT,\IndContextC$} we have that 
+$\convertible{A}{\vvDepArrow{\IPN}{\IP}{B}}$ for some $B$. The notation $\typing{\vv{x}}{\vv{Y}}$ represents
+$\typing{x_1}{Y_1},\dots,\typing{x_k}{Y_k}$ form some $k$.
+
+\item For every $\IN\in\domContext{\IndContextT}$,
+$(\typing{\CN}{\CT})\in\IndContextC$ and $\CN\in\Constr{\IndContextC}{\IN}$ we have that 
+$\convertible{\CT}{\vvDepArrow{\IPN}{\IP}{\vvDepArrow{x}{A}{\app{\IN}{\vv{\IPN}}{\vv{v}}}}}$. Namely,
+the parameters of the constructor must be passed to the inductive type definition. It is said that parameters are 
+parametric. Note that the rest of the arguments passed to the inductive ($\vv{v}$) are not necessarily the same 
+that the constructor receives ($\vv{x}$).
+
+\item For every $(\typing{\IN}{\IT})\in\IndContextT$ we have that:
+\begin{center}
+$\convertible{\IT}{\vvDepArrow{\IPN}{\IP}{\vvDepArrow{\IIN}{\II}{s_{\IN}}}}$
+\hspace{1em}
+$\typing{\vvDepArrow{\IPN}{\IP}{\vvDepArrow{\IIN}{\II}{s_{\IN}}}}{s'_{\IN}}$
+\end{center}
+Here $\vv{\II}$ es the arity (or indices) of the inductive and $s_{\IN}$ its sort.
+
+\item For every $\CN\in\domContext{\IndContextC}$, exists $\IN\in\domContext{\IndContextT}$ such that 
+$\CN\in\Constr{\IndContextT}{\IN}$.
+
+\item All inductive types in the block appear strictly positively in the constructor: \todo{define strictly
+positive} see \cite{timanySozeau:Consistency-pCuIC} is different from \cite{coqRef} 
+chapter \emph{Calculus of Inductive Constructions.Inductive Definitions}.
+\end{itemize}
+
+\begin{figure}
+    \centering
+    \begin{mathpar}
+    \inferrule*[lab=\CicIndWf]{
+        \IndCheck{} 
+        \and 
+        \ctyping{D}{s'_I}\text{ for all }(\typing{I}{D})\in\IndContextT
+        \\\\
+        \ctyping[\IndContextT]{C}{s_I}
+            \text{ for all }(\typing{c}{C})\in\IndContextC\text{ if }c\in\Constr{\IndContextC}{I}
+    }{
+        \wfContext{\Context,\IndIntro[n][\IndContextT{}][\IndContextC{}]{}}
+    }
+    \and
+    \inferrule*[lab=\CicIndType]{
+        \wfContext{\Context} 
+        \and 
+        \IndIntro[n][\IndContextT][\IndContextC]\in\Context
+        \and
+        (\typing{I}{D})\in\IndContextT
+    }{
+        \ctyping{I}{D}
+    }
+    \and
+    \inferrule*[lab=\CicIndConstr]{
+        \wfContext{\Context} 
+        \and 
+        \IndIntro[n][\IndContextT][\IndContextC]\in\Context
+        \and
+        (\typing{c}{C})\in\IndContextT
+    }{
+        \ctyping{c}{C}
+    }
+    \end{mathpar}
+    \caption{Type judgments for inductive blocks}
+    \label{fig:CIC-Ind-rules}
+\end{figure}
+
+
+Coming back to \figRef{fig:InductivesExample}, we see that \IndbadOne{}, \IndbadTwo{}, \IndbadThree{}
+are not valid definition blocks. The first one because it does not satisfy the positivity condition,
+the second one because the constructor does not receive the parameters of the type and the third because
+\CoqDefinition{bad3} is not a constructor for \IndbadThree{}.
+
+
+\subsubsection{Inductive elimination}
+% Predicate Name
+\newcommand{\PredN}{\ensuremath{Q}} 
+\newcommand{\CicIndElim}{\textsc{Ind-Elim}}
+
+Until now, we have established how to introduce new inductive types, which also gives a form to construct them 
+(by applying the constructors). However, is not possible to use (eliminate) them yet: check if a list is empty for 
+example. We proceed to explain a way of doing this by adding a new syntactic term and new type judgments.
+
+The main idea to eliminate a term whose type is an inductive one is to specify how it should behave for every 
+constructor of the type, generating branches.
+\begin{Definition}[Case block]
+Inductive elimination is represented by \IndElim{\cdot}{\cdot}{\cdot|\dots |\cdot} where
+the first argument is the inductive term, the second one a predicate over the term, and the third one represent
+the branches for each constructor.
+\end{Definition}
+
+The predicate is a lambda whose arguments are the indices arguments of the inductive type plus the term of
+the case. The type of the block case is the predicate applied the indices of the inductive and the term
+itself.
+Namely, given an inductive $\typing{\IN}{(\vvDepArrow{\IPN}{\IP}{\vvDepArrow{\IIN}{\II}{s_\IN}})}$, parameters
+$\typing{\vv{a}}{\vv{\IP}}$, indices $\typing{\vv{i}}{\vv{\II}}$ and a term $M$ such as
+$\ctyping{M}{\app{\IN}{\vv{a}}{\vv{i}}}$, then
+the type of the predicate \PredN{} is 
+$\enDepArrow{\vv{x}}{\subst{\vv{\II}}{\vv{\IPN}}{\vv{a}}}{\depArrow{x}{\app{\IN}{\vv{a}}{\vv{x}}}{R}}$
+and the type of the block is $\app{Q}{\vv{i}}{\vv{M}}$
+
+\todo{maybe speak about singleton elimination and allowed sort of elimination}
+
+The branches of the block case represent what it should be done in case the term of the case was built by the 
+specific constructor. This means that it must be one branch for every constructor. Specifically, the branches
+are lambdas that take the non-parametric arguments of the respective constructor. 
+
+In \figRef{fig:CaseTypeJudg} we can see the rule for typing a case block. This rule check that the 
+predicate receives the indices of the inductive type along with a term that belongs to the inductive type itself.
+Also check that each branch is well-typed respect to the predicate instantiated to the respective constructor 
+and indices. Finally, the type of case block is the predicate applied to the indices of the term case 
+and the term case itself.
+
+Before showing some examples, is necessary to define \iotaRed{}. This reductions allows the identification
+of a case block when applied on a specific constructor with its respective branch. Namely
+\begin{center}
+$\reductionIota{\IndElim{\app{\CN_i}{\vv{\IPN}}{\vv{\IIN}}}{\PredN}{f_1|\dots | f_l}}{\app{f_i}{\vv{\IIN}}}$
+\end{center}
+
+Now is possible to define terms wit the case block. For example, the following term 
+verify if a list $\typing{l}{\app{\Indlist}{A}}$ is empty: 
+\newcommand{\noBinder}{\rule{8pt}{1pt}}
+\newcommand{\nonLambda}[1]{\ensuremath{\lambda\, \noBinder\,.\,#1}}
+\begin{center}
+    $\IndElim{l}{\nonLambda{\Indbool}}{\Construe\ |\ \Consfalse}$
+\end{center}
+Here the predicate is homogeneous across all branches, so it can be dummy over the arguments ($\nonLambda{M}$ 
+stands the corresponding lambda, but their arguments are not binded, although in this case no binder is needed).
+However, this is not always the case. For example, getting the head of a vector needs a smarter predicate. 
+This function has the following signature:
+\def\vecHead{\CoqDefinition{head}}
+\begin{center}
+$\typing{\vecHead}{\depArrow{n}{\Indnat}{A}{\Type}{v}{\app{\Indvec}{A}{(\app{\ConsS}{n})}}{A}}$    
+\end{center}
+Because there must be one branch per constructor, the naive definition of \vecHead{} is not enough:
+\begin{center}
+    $\IndElim{v}{\nonLambda{A}}{\Constt\ |\ \abs{n}{\Indnat}{a}{A}{v}{\app{\Indvec}{A}{n}}{a} }$
+\end{center}
+The previous case does not type check due to empty constructor of the vector, even though this case block 
+is never applied to an empty vector. This is a sign that the predicate 
+of the block needs to be refined: it depends on the indices of the inductive. Because the predicate can be
+any term, it is possible to do a case analysis on the form of the indices of the type:
+\begin{center}
+    $\IndElim{v}{\depArrow{n}{\Indnat}{\noBinder}{\noBinder}{\IndElim{n}{\nonLambda{\Type}}{\Indunit|A}}}{
+             \Constt\ |\ \abs{n}{\Indnat}{a}{A}{v}{\app{\Indvec}{A}{n}}{a}}$
+\end{center}
+We also know that the type of the case correspond to apply the predicate to the indices and the term:
+\begin{center}
+$\typing{\vecHead}{\depArrow{n}{\Indnat}{A}{\Type}{v}{\app{\Indvec}{A}{(\app{\ConsS}{n})}}{
+        \app{(\abs{n}{\Indnat}{\noBinder}{\noBinder}{
+                   \IndElim{n}{\lambda \_.\Type}{\Indunit|A}}}})}{(\app{\ConsS}{n})}{v}$
+\end{center}
+Doing some \betaRed{} we get:
+\begin{center}
+$\typing{\vecHead}{\depArrow{n}{\Indnat}{A}{\Type}{v}{\app{\Indvec}{A}{(\app{\ConsS}{n})}}{
+                             \IndElim{(\app{\ConsS}{n})}{\lambda \_.\Type}{\Indunit|A}}}$
+\end{center}
+Applying \iotaRed{} gives the desired result 
+\begin{center}
+$\typing{\vecHead}{\depArrow{n}{\Indnat}{A}{\Type}{v}{\app{\Indvec}{A}{(\app{\ConsS}{n})}}{A}}$
+\end{center}
+By a similar process the branches of the outer case are well-typed.
+
+\begin{figure}
+\centering
+\begin{mathpar}
+\inferrule*[lab=\CicIndElim]{
+    \wfContext{\Context}
+    \and
+    \IndIntro[n][\IndContextT][\IndContextC]\in\Context
+    \and
+    (\typing{\IN}{(\vvDepArrow{\IPN}{\IP}{\vvDepArrow{\IIN}{\II}{s_\IN}}}))\in\IndContextT
+    \\\
+    \{\CN_i\}_{i=1\dots l}\in\Constr{\IndContextC}{\IN}
+    \and
+    (\ctyping{\CN_i}{\vvDepArrow{\IPN}{\IP}{\vvDepArrow{x_i}{A_i}{\app{\IN}{\vv{a}}{\vv{v_i}}}}})_{i=1\dots l}
+    \\\\
+    \cvvtyping{a}{\IP}
+    \and
+    \ctyping{\vv{i}}{\subst{\vv{\II}}{\vv{\IPN}}{\vv{a}}}
+    \and
+    \ctyping{M}{\app{\IN}{\vv{a}}{\vv{i}}}
+    \\\
+    \ctyping{\PredN}{(\enDepArrow{\vv{y}}{\subst{\vv{\II}}{\vv{\IPN}}{\vv{a}}}{
+                                  \depArrow{x}{\app{\IN}{\vv{a}}{\vv{y}}}{B}})}
+    \and
+    (\ctyping{f_i}{\enDepArrow{\vv{x_i}}{\subst{\vv{A_i}}{\vv{\IPN}}{\vv{a}}}{
+                               \app{\PredN}{\vv{v_i}}{(\app{c_i}{\vv{p}}{\vv{x_i}})}}})_{i=1\dots l}
+}{
+\ctyping{\IndElim{M}{\PredN}{f_1|\dots|f_l}}{(\app{\PredN}{\vv{i}}{M})}
+}
+\end{mathpar}
+\caption{Elimination of an inductive type}
+\label{fig:CaseTypeJudg}
+\end{figure}
+
+\section{CIC Extensions}
+Until now, we only stated that type sorts have a level: \Type[i]{} has level $i$, for example.
+In practice, the calculus presented in \sectRef{sec:CIC} needs explicit levels at every type sort instantiation.
+This explicit instantiation has some drawbacks: truly type polymorphic functions and cumulative inductives
+are not supported. In the next sections we show extension to \CIC{} that solves the previous issues.
+
+\subsection{Universe polymorphism}
+As stated before, universe levels must be explicit. Given a fixed universe level $i$ such
+that $0\leq i$, the following term is intended to represent an identity function for all types:
+\begin{center}
+\CoqDefinition{id} 
+\termDef{} 
+\typing{\abs{A}{\Type[i]}{a}{A}{a}}{(\typing{\depArrow{A}{\Type[i]}{\arrow{A}{A}})}{\Type[i+1]}}
+\end{center}
+With this definition, and because \typing{\Indnat}{\Type[0]}, the following is a valid application:
+\begin{center}
+\typing{(\app{\CoqDefinition{id}}{\Indnat})}{\arrow{\Indnat}{\Indnat}}
+\end{center}
+However, there is no level on which this definition is valid:
+\begin{center}
+\newcommand{\id}{\CoqDefinition{id}}
+\app{\id}{(\depArrow{A}{\Type[i]}{\arrow{A}{A}})}{\id}
+\end{center}
+Because the calculus enforce $\Type[i+1]\leq\,\Type[i]$, which is not possible.
+In \cite{UniversePoly}, they introduced universe polymorphism for a variant of \CIC{} where is possible 
+to define terms that are truly type polymorphic, in the sense that types can be instantiated with
+different levels at different times. This is accomplished by carrying a context of constraint for 
+each definition, where the universe levels are declared with their constraints.
+For example, the following term defines a truly polymorphic identity function:
+\newcommand{\polyi}{\ensuremath{\underline{i}}}
+\begin{center}
+\CoqDefinition{pid} 
+\termDef{} 
+\typing{\abs{A}{\Type[\polyi]}{a}{A}{a}}{(\typing{\depArrow{A}{\Type[\polyi]}{\arrow{A}{A}})}{\Type[\polyi+1]}}
+\end{center}
+The context carried is simply the declaration of the polymorphic universe level \polyi{} with a constraint
+$0\leq\polyi$.
+This level can be instantiated at type application, so now is possible to self-apply, but it 
+is necessary to explicit the level:
+\begin{center}
+\newcommand{\id}{\CoqDefinition{pid}}
+\app{\id}{(\depArrow{A}{\Type[0]}{\arrow{A}{A}})}{\id} 
+\\
+\app{\id}{(\depArrow{A}{\Type[i]}{\arrow{A}{A}})}{\id}
+\end{center}
+Note that in both cases, the polymorphic level \polyi{} of the second \CoqDefinition{pid} is instantiated 
+to 0 and $i$, respectively, which in turn instantiate the polymorphic level \polyi{} of the first one
+to 1 and $i+1$.
+
+\subsection{Cumulative inductives}
+Another limitation that \CIC{} has, even when adding universe polymorphism, is that inductive type do not
+form a cumulative relation. Note that talking about cumulativity only make sense in a polymorphic
+context. The non-cumulativity of inductive types can be seen with the following example. 
+Given two universe level $j$ and $k$ such that $j<k$, and a 
+polymorphic inductive type 
+\newcommand{\Indtest}{\CoqDefinition{test}}
+\IndIntro[0][\typing{\Indtest}{\depArrow{A}{\Type[\polyi]}}{\Type[\polyi+1]}][
+\typing{\CoqDefinition{ctest}}{\depArrow{A}{\Type[\polyi]}{\app{\Indtest}{A}}}]{},
+then the following theorem is not provable:
+\begin{center}
+    $\depArrow{A}{\Type[j]}{H}{\app{\Indtest}{[j]}{A}}{\app{\Indtest}{[k]}{A}}$
+\end{center}
+where the brackets in the previous example corresponds to instantiation of universe level. Intuitively, 
+this theorem should be provable because $\app{\Indtest}{[j]}{A} < \app{\Indtest}{[k]}{A}$ if 
+$\Type[j]\leq\Type[k]$. This extension was developed by Timany and Sozeau 
+\cite{timanySozeau:Consistency-pCuIC} where they demonstrated the consistency of this extensions.
+Now we proceed to explain the typing extension in order to support this system.
+
+\todo{Define the rules extension}
+
+\newcommand{\pCuIC}{\text{pCuIC}}
+From now on, every time we talk about \CIC{} we will be referring to the the predicative calculus 
+of cumulative inductive constructions (\pCuIC{}) which correspond to \CIC{} plus the extension of 
+universe polymorphism and cumulative inductives.
+
+\subsection{Coq: The proof assistant}
+\label{subsection:Coq}
+\newcommand{\Coq}{\text{Coq}}
+\Coq{} is a proof assistant that allows to the specification and the development of software in the same 
+environment. \Coq{} implements \CIC{} which provides the tools for such an environment.
+However, \Coq{} uses \CIC{} as the kernel for the its theory and provide higher abstraction layers on top of it
+so it can be more user friendly. We proceed to explain how this two system relate.
+
+First, it is necessary to define how are represented the terms of \CIC{} in \Coq{}. 
+It is important to note that the terms of \Coq{} posses the same structure 
+if the ones in \CIC{}. Instead of provide a the BNF syntax definition, it will be 
+represented as representations. This can be seen in \figRef{fig:CoqCICRepr}.
+
+{
+\renewcommand{\arraystretch}{1.5}
+\begin{figure}
+    \centering
+    \begin{tabular}{|c|c|}
+    \hline
+    \rowcolor[gray]{0.9}Term in \CIC{} & Term in \Coq{} \\
+    \hline
+    \Type & \VernacType[i] \\
+    \hline
+    \Prop & \VernacProp \\
+    \hline
+    \abs{x}{A}{M} & \lstCoqInline!fun (x: A) => M! \\
+    \hline
+    \arrow{A}{B} & \lstCoqInline!A -> B! \\ 
+    \hline
+    \multirow{2}{*}{\depArrow{x}{A}{B}} & \lstCoqInline!forall (x: A), B! \\
+                                        & \lstCoqInline!$\forall$(x: A), B! \\
+    \hline
+    \end{tabular}    
+    \caption{\Coq{} representations of \CIC{} terms without inductives}
+    \label{fig:CoqCICRepr}
+\end{figure}
+}
+
+\subsubsection{Typical ambiguity}
+The type hierarchy requires explicit universe level. However, it is cumbersome to explicit each
+level. This is the reason \Coq{} provides \emph{typical ambiguity} for every type use.
+The concept typical ambiguity remount to Russel's type theory \cite{1908:Russel_TypeTheory} and 
+here is used in a similar manner
+
+
+\subsubsection{Commands}
+\Coq{} allow the introduction of term and inductive definitions. The first one is done by 
+\VernacDefinition{} and the second one by \VernacInductive{}. In 
+
+\begin{figure}
+    \centering
+    \begin{minipage}{\textwidth*2/3}
+    \begin{lstlisting}[language=Coq]
+    Definition definition (A: Type) := A.
+    Definition definition := fun (A: Type) => A.
+    \end{lstlisting}
+    \end{minipage}
+    \caption{Example of \Coq{} definitions}
+    \label{fig:CoqDefinitionExample}
+\end{figure}
+
+
+
+
+\todo{talk about typical ambiguity, how it tries to simulate universe polymorphism  and how the constructs of coq translate to CiC}
+
+\section{Parametricity}
+In this sections we are going to talk about parametricity. We present the introduction of the terminology,
+how can be used to derive properties about the terms and how can be used in practice.
+
+\subsection{The abstraction theorem}
+\newcommand{\SetBool}{as}
+
+In 1983, Reynolds \cite{Reynolds83:TypesAbstractionAndParametricPolymorphism} introduced \SystemF{} and
+stated a property over the terms: expressions in related contexts will be related values. Reynolds called 
+this property \emph{the abstraction theorem}. The interesting part of the theorem is that it allows 
+to reason about polymorphic functions, \ie{}, terms of type $\forall X.T$. Note that in \SystemF{}, 
+a function that is polymorphic must behave in the same way for all types instantiation. Nevertheless,
+this theorem states that related terms will be related after the function application.
+
+Reynolds formulated the abstraction theorem for a set theoretic construction
+
+\subsection{Parametricity and free theorems}
+The abstraction theorem was renamed to \emph{parametricity} by Wadler \cite{Wadler:1989:TheoremsForFree}.
+Here Wadler derived theorems for polymorphic functions using only parametricity. As a consequence, 
+these theorems holds for all types instantiation. For example
+
+\subsection{Parametricity in dependent typed languages}
+
+\section{Models and Syntactic Translation}
+The lambda calculus is a good abstraction tool. However, it is .... A model for the lambda calculus 
+provides \emph{meaning} to the well-typed terms of the calculus. There are plenty models for lambda 
+calculus and their variants, including CIC \cite{timanySozeau:Consistency-pCuIC}. However, all this models
+are in another theory outside if type theory. PIM \todo{fix} \cite{700syntactical}, proposed
+to use as model \CIC{} itself. This gives a notation of compilation
+
+\subsection{The exceptional translation}
+
+\subsection{The parametric exception translation}

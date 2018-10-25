@@ -1,0 +1,66 @@
+\documentclass[spanish,letterpaper,singlespace]{templates/uchile-tesis}
+
+\include{0_CustomCommands}
+\include{00_CoqDefinitions}
+\include{01_BackgroundDefs}
+
+% Comandos especiales de esta tesis
+%\newcommand{\mb}{\textit{microblogging}\xspace}
+%\newcommand{\web}{Web\xspace}
+%\newcommand{\tw}{\textit{Twitter}\xspace}
+%\newcommand{\etal}{\textit{et. al.}\xspace}
+
+% Portada - Variables
+\facultad{Facultad de Ciencias Físicas y Matemáticas} 
+\departamento{Departamento de Ciencias de la Computación}
+\title{ZZZZZ}
+
+\trabajoygrado{Tesis para optar al grado de Magíster en Ciencías, mención Computación}
+\trabajoysubgrado{Memoria para optar al título de Ingeniero Civil en Computación}
+
+
+\author{Hans Jacob Fehrmann Rojas}
+
+\profguia{Éric Tanter} %profesor guia
+\profcoguia{} %profesor co-guia
+
+\profint{Sr Comision 1} %profesor integrante
+\profinta{Sr Comision 2} %profesor integrante 2, generalemente no es necesario
+\profintb{Sr Comision 3} %profesor integrante 3, generalmente no es necesario
+%\proyecto{Financiado por el proyecto \#ZZZZ}
+
+\ciudad{Santiago} \pais{Chile} \monthpub{Mayo} \yearpub{2018}
+
+% hide in ToC
+\newcommand{\nocontentsline}[3]{}
+\newcommand{\tocless}[2]{\bgroup\let\addcontentsline=\nocontentsline#1{#2}\egroup}
+
+\begin{document}
+
+% Lista de TODOS y FIXMES, no aparece si es que no hay nada que hacer
+
+\listoftodos
+\newpage
+
+%% Portada
+\maketitle
+
+% Prefacio
+\input{Preface}
+
+% Introducción
+\include{1_Introduccion}
+
+% Background
+\include{2_Background} 
+
+\include{5_Trans/5_Trans}
+\include{6_Impl}
+% Apéndices
+%\include{Appendix}
+
+% Bibliografía
+\bibliographystyle{abbrv}
+\bibliography{bibliography/tesis}
+
+\end{document}
